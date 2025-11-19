@@ -250,7 +250,7 @@ const CreateEvent = () => {
     const loadEvent = async () => {
       try {
         setIsInitializing(true);
-        const data = await apiService.getEvent(eventId);
+        const data = await apiService.getEvent(eventId, { trackView: false });
         if (!data) {
           toast.error('We could not find the event you want to edit.');
           navigate('/dashboard');
