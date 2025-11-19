@@ -1,3 +1,4 @@
+/* global globalThis */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -25,6 +26,15 @@ const AttendeeDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleRefresh = () => {
+    if (typeof globalThis !== 'undefined' && globalThis.location &&
+        typeof globalThis.location.reload === 'function') {
+      globalThis.location.reload();
+      return;
+    }
+    toast.error('Refresh is not supported in this environment.');
+  };
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -84,7 +94,7 @@ const AttendeeDashboard = () => {
           <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Dashboard unavailable</h2>
           <p className="text-gray-600 mb-4">{error || 'We could not load your ticket information right now.'}</p>
-          <Button onClick={() => window.location.reload()} className="gradient-orange text-white">
+          <Button onClick={handleRefresh} className="gradient-orange text-white">
             Refresh
           </Button>
         </div>
