@@ -27,7 +27,11 @@ public class EventService {
     }
 
     public EventEntity createEvent(EventEntity event) {
-        return eventRepository.save(Objects.requireNonNull(event, "Event must not be null"));
+        EventEntity toCreate = Objects.requireNonNull(event, "Event must not be null");
+        if (toCreate.getViews() == null) {
+            toCreate.setViews(0L);
+        }
+        return eventRepository.save(toCreate);
     }
 
     public EventEntity updateEvent(Long id, EventEntity updatedEvent) {
@@ -55,8 +59,22 @@ public class EventService {
             if (updatedEvent.getAgenda() != null) {
                 event.setAgenda(updatedEvent.getAgenda());
             }
+            if (updatedEvent.getViews() != null) {
+                event.setViews(updatedEvent.getViews());
+            }
             return eventRepository.save(event);
         }).orElseThrow(() -> new RuntimeException("Event not found with ID: " + id));
+    }
+
+    public EventEntity getEventByIdAndIncrementViews(Long id) {
+        Objects.requireNonNull(id, EVENT_ID_MUST_NOT_BE_NULL);
+        return eventRepository.findById(id)
+                .map(event -> {
+                    long current = Optional.ofNullable(event.getViews()).orElse(0L);
+                    event.setViews(current + 1);
+                    return eventRepository.save(event);
+                })
+                .orElseThrow(() -> new RuntimeException("Event not found with ID: " + id));
     }
 
     public void deleteEvent(Long id) {
