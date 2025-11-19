@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -46,6 +46,7 @@ const CreateEvent = () => {
     capacity: 100,
     image: ''
   });
+  const fileInputRef = useRef(null);
 
   const parseStoredOrganizerProfile = useCallback(() => {
     try {
@@ -146,8 +147,8 @@ const CreateEvent = () => {
           location: data.location || '',
           address,
           category: data.category || prev.category,
-          price: data.ticketPrice != null ? String(data.ticketPrice) : prev.price,
-          capacity: data.capacity != null ? String(data.capacity) : prev.capacity,
+          price: data.ticketPrice !== null && data.ticketPrice !== undefined ? String(data.ticketPrice) : prev.price,
+          capacity: data.capacity !== null && data.capacity !== undefined ? String(data.capacity) : prev.capacity,
           image: data.image || '',
         }));
 
@@ -183,7 +184,52 @@ const CreateEvent = () => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value
+      [name]: type === 'number' ? Number.parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleImageUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file.');
+      event.target.value = '';
+      return;
+    }
+
+    const fiveMegabytes = 5 * 1024 * 1024;
+    if (file.size > fiveMegabytes) {
+      toast.error('Image must be 5MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData(prev => ({
+          ...prev,
+          image: reader.result
+        }));
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error('We could not read that image. Please try another file.');
+    };
+
+    reader.readAsDataURL(file);
+    // Reset the file input so users can pick the same file again if needed.
+    event.target.value = '';
+  };
+
+  const handleClearImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      image: ''
     }));
   };
 
@@ -230,6 +276,7 @@ const CreateEvent = () => {
       organizerEmail: (organizerProfile.email || user.email || '').trim(),
       organizerPhone: (organizerProfile.contactNumber || '').trim(),
       description: combinedDescription || '',
+      image: formData.image || null,
     };
 
     try {
@@ -350,21 +397,47 @@ const CreateEvent = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image">Event Image URL</Label>
-                <div className="flex space-x-2">
+                <Label htmlFor="image">Event Image</Label>
+                <div className="flex flex-wrap gap-2">
                   <Input
                     id="image"
                     name="image"
-                    type="url"
+                    type="text"
                     value={formData.image}
                     onChange={handleInputChange}
-                    placeholder="https://example.com/event-image.jpg"
-                    className="flex-1"
+                    placeholder="Paste an image URL or upload below"
+                    className="flex-1 min-w-[220px]"
                   />
-                  <Button type="button" variant="outline" size="sm">
-                    <Image className="w-4 h-4" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Image className="w-4 h-4 mr-2" />
+                    Upload
                   </Button>
+                  {formData.image && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearImage}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                 </div>
+                <p className="text-sm text-gray-500">
+                  Use a direct image link or upload a JPG/PNG (max 5MB).
+                </p>
                 {formData.image && (
                   <img
                     src={formData.image}
@@ -372,6 +445,8 @@ const CreateEvent = () => {
                     className="w-full h-48 object-cover rounded-lg mt-2"
                     onError={(e) => {
                       e.target.style.display = 'none';
+                      toast.error('We could not load the provided image.');
+                      handleClearImage();
                     }}
                   />
                 )}
