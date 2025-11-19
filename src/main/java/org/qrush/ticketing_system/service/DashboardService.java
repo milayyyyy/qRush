@@ -111,6 +111,7 @@ public class DashboardService {
                     long ticketsSold = ticketRepository.countByEvent_EventID(event.getEventID());
                     double revenue = Optional.ofNullable(ticketRepository.sumRevenueByEvent(event.getEventID())).orElse(0.0d);
                     int capacity = Optional.ofNullable(event.getCapacity()).orElse(0);
+                    long views = Optional.ofNullable(event.getViews()).orElse(0L);
                     return new OrganizerDashboardResponse.EventSummary(
                             event.getEventID(),
                             event.getName(),
@@ -120,7 +121,7 @@ public class DashboardService {
                             ticketsSold,
                             capacity,
                             revenue,
-                            0L
+                            views
                     );
                 })
                 .sorted(Comparator.comparing(OrganizerDashboardResponse.EventSummary::eventStart))
