@@ -248,7 +248,7 @@ const OrganizerDashboard = () => {
       if (eventsToUpdate.length > 0) {
         const updateResults = await Promise.all(eventsToUpdate.map(async (eventId) => {
           try {
-            const existing = await apiService.getEvent(eventId);
+            const existing = await apiService.getEvent(eventId, { trackView: false });
             if (!existing) {
               return false;
             }
