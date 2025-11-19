@@ -49,6 +49,12 @@ public class EventService {
             if (updatedEvent.getImage() != null) {
                 event.setImage(updatedEvent.getImage());
             }
+            if (updatedEvent.getFeatures() != null) {
+                event.setFeatures(updatedEvent.getFeatures());
+            }
+            if (updatedEvent.getAgenda() != null) {
+                event.setAgenda(updatedEvent.getAgenda());
+            }
             return eventRepository.save(event);
         }).orElseThrow(() -> new RuntimeException("Event not found with ID: " + id));
     }
