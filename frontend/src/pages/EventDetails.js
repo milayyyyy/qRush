@@ -77,6 +77,80 @@ const formatPrice = (value) => {
   return formatCurrency(value);
 };
 
+const parseEventFeatures = (rawFeatures) => {
+  if (!rawFeatures) {
+    return [];
+  }
+  if (Array.isArray(rawFeatures)) {
+    return rawFeatures
+      .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
+      .filter((item) => item.trim().length > 0);
+  }
+  if (typeof rawFeatures === 'string') {
+    const trimmed = rawFeatures.trim();
+    if (!trimmed) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
+          .filter((item) => item.trim().length > 0);
+      }
+      if (parsed && Array.isArray(parsed.features)) {
+        return parsed.features
+          .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
+          .filter((item) => item.trim().length > 0);
+      }
+    } catch (err) {
+      console.warn('Unable to parse feature data', err);
+    }
+  }
+  return [];
+};
+
+const parseEventAgenda = (rawAgenda) => {
+  if (!rawAgenda) {
+    return [];
+  }
+  const normalizeItem = (item) => ({
+    time: typeof item?.time === 'string' ? item.time : '',
+    title: typeof item?.title === 'string' ? item.title : '',
+    speaker: typeof item?.speaker === 'string' ? item.speaker : '',
+  });
+
+  if (Array.isArray(rawAgenda)) {
+    return rawAgenda
+      .map(normalizeItem)
+      .filter((item) => item.time || item.title || item.speaker);
+  }
+
+  if (typeof rawAgenda === 'string') {
+    const trimmed = rawAgenda.trim();
+    if (!trimmed) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(normalizeItem)
+          .filter((item) => item.time || item.title || item.speaker);
+      }
+      if (parsed && Array.isArray(parsed.agenda)) {
+        return parsed.agenda
+          .map(normalizeItem)
+          .filter((item) => item.time || item.title || item.speaker);
+      }
+    } catch (err) {
+      console.warn('Unable to parse agenda data', err);
+    }
+  }
+
+  return [];
+};
+
 const mapEventResponse = (data, storedProfile, user) => {
   if (!data) {
     return null;
@@ -95,6 +169,8 @@ const mapEventResponse = (data, storedProfile, user) => {
   const detailedDescription = remainingSegments.length > 1
     ? remainingSegments.slice(0, -1).join('\n\n')
     : '';
+  const parsedFeatures = parseEventFeatures(data.features);
+  const parsedAgenda = parseEventAgenda(data.agenda);
 
   const mappedEvent = {
     eventID: data.eventID,
@@ -115,8 +191,8 @@ const mapEventResponse = (data, storedProfile, user) => {
     image: data.image || null,
     rating: data.rating ?? null,
     reviews: data.reviews ?? null,
-    features: data.features || [],
-    agenda: data.agenda || [],
+    features: parsedFeatures,
+    agenda: parsedAgenda,
   };
 
   if (storedProfile) {
