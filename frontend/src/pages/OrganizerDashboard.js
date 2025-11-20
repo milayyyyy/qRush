@@ -168,6 +168,52 @@ const OrganizerDashboard = () => {
     [dashboard?.events]
   );
 
+  const revenueSeries = useMemo(() => {
+    const events = dashboard?.events ?? [];
+    if (events.length === 0) {
+      return [];
+    }
+
+    const totals = new Map();
+
+    events.forEach((event) => {
+      const rawRevenue = Number(event.revenue ?? 0);
+      if (Number.isNaN(rawRevenue) || rawRevenue <= 0) {
+        return;
+      }
+
+      const start = event.eventStart ? new Date(event.eventStart) : null;
+      if (!start || Number.isNaN(start.getTime())) {
+        const existing = totals.get('unscheduled') ?? {
+          label: 'Unscheduled',
+          value: 0,
+          order: Number.POSITIVE_INFINITY
+        };
+        existing.value += rawRevenue;
+        totals.set('unscheduled', existing);
+        return;
+      }
+
+      const order = start.getFullYear() * 12 + start.getMonth();
+      const key = `${start.getFullYear()}-${start.getMonth()}`;
+      const label = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      const existing = totals.get(key) ?? { label, value: 0, order };
+      existing.value += rawRevenue;
+      totals.set(key, existing);
+    });
+
+    return Array.from(totals.values())
+      .sort((a, b) => a.order - b.order)
+      .slice(-6);
+  }, [dashboard?.events]);
+
+  const maxRevenueValue = useMemo(() => {
+    if (revenueSeries.length === 0) {
+      return 0;
+    }
+    return Math.max(...revenueSeries.map((entry) => entry.value));
+  }, [revenueSeries]);
+
   const handleViewEvent = (eventId) => {
     if (eventId) {
       navigate(`/events/${eventId}`);
@@ -532,21 +578,47 @@ const OrganizerDashboard = () => {
           <TabsContent value="analytics" className="space-y-6">
             <h2 className="text-2xl font-semibold text-gray-900">Analytics Overview</h2>
             
-            {/* Revenue Chart Placeholder */}
             <Card className="p-6">
               <CardHeader className="px-0 pt-0">
                 <CardTitle>Revenue Trends</CardTitle>
               </CardHeader>
               <CardContent className="px-0">
-                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Revenue analytics chart would appear here</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Integration with charting library needed for full functionality
-                    </p>
+                {revenueSeries.length === 0 ? (
+                  <div className="h-64 bg-gray-50 rounded-lg flex flex-col items-center justify-center text-center">
+                    <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600 font-medium">No revenue recorded yet</p>
+                    <p className="text-sm text-gray-500 mt-2">Ticket sales will appear here once events generate revenue.</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="h-72 flex flex-col justify-between">
+                    <div className="flex items-end gap-4 h-56">
+                      {revenueSeries.map((entry) => {
+                        const heightPercent = maxRevenueValue === 0
+                          ? 0
+                          : Math.min(Math.max((entry.value / maxRevenueValue) * 100, 6), 100);
+                        return (
+                          <div
+                            key={`${entry.label}-${entry.order}`}
+                            className="flex-1 min-w-[56px] flex flex-col items-center justify-end h-full"
+                          >
+                            <div className="w-full max-w-[3.5rem] bg-orange-200/40 rounded-t-lg overflow-hidden flex items-end" style={{ height: '100%' }}>
+                              <div
+                                className="w-full bg-gradient-to-t from-orange-500 via-orange-400 to-orange-300 rounded-t-lg transition-all duration-300"
+                                style={{ height: `${heightPercent}%` }}
+                              />
+                            </div>
+                            <p className="mt-3 text-sm font-semibold text-gray-700">{entry.label}</p>
+                            <p className="text-xs text-gray-500">{formatCurrency(entry.value)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mt-6">
+                      <span>Last {revenueSeries.length} period{revenueSeries.length > 1 ? 's' : ''}</span>
+                      <span>Peak revenue {formatCurrency(maxRevenueValue)}</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
