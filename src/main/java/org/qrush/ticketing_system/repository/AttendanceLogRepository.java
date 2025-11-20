@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AttendanceLogRepository extends JpaRepository<AttendanceLogEntity, Long> {
@@ -17,4 +18,6 @@ public interface AttendanceLogRepository extends JpaRepository<AttendanceLogEnti
 	long countByEvent_EventID(Long eventId);
 
 	long countByEvent_EventIDAndStatusIgnoreCase(Long eventId, String status);
+
+	Optional<AttendanceLogEntity> findTopByTicket_TicketIDOrderByStartTimeDesc(Long ticketId);
 }
