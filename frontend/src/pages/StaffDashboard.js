@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+/* global globalThis */
+import React, { useState, useEffect, useMemo, useCallback, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
@@ -36,6 +37,14 @@ const StaffDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [manualTicket, setManualTicket] = useState('');
+  const [manualResult, setManualResult] = useState(null);
+  const [manualLoading, setManualLoading] = useState(false);
+  const [bulkInput, setBulkInput] = useState('');
+  const [bulkResult, setBulkResult] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const eventSelectId = useId();
+  const manualTicketId = useId();
 
   const fetchDashboard = useCallback(async (eventId, { showSpinner = true } = {}) => {
     if (!eventId) {
@@ -87,6 +96,24 @@ const StaffDashboard = () => {
     initialise();
   }, [fetchDashboard]);
 
+  useEffect(() => {
+    if (!selectedEventId) {
+      return;
+    }
+    const pendingRefresh = sessionStorage.getItem('qrush:pending-dashboard-refresh');
+    if (pendingRefresh === 'true') {
+      fetchDashboard(selectedEventId, { showSpinner: false });
+      sessionStorage.removeItem('qrush:pending-dashboard-refresh');
+    }
+  }, [selectedEventId, fetchDashboard]);
+
+  useEffect(() => {
+    setManualResult(null);
+    setBulkResult(null);
+    setManualTicket('');
+    setBulkInput('');
+  }, [selectedEventId]);
+
   const handleEventChange = async (event) => {
     const value = event.target.value;
     const parsed = value ? Number(value) : null;
@@ -124,6 +151,22 @@ const StaffDashboard = () => {
     });
   };
 
+  const formatDateTime = (value) => {
+    if (!value) {
+      return '--';
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '--';
+    }
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const getStatusColor = (status) => {
     switch ((status || '').toLowerCase()) {
       case 'valid':
@@ -155,6 +198,118 @@ const StaffDashboard = () => {
         return <AlertCircle className="w-4 h-4" />;
     }
   };
+
+  const handleManualVerify = useCallback(async () => {
+    const trimmed = manualTicket.trim();
+    if (!trimmed) {
+      toast.warning('Enter a ticket number to verify.');
+      return;
+    }
+    if (!selectedEventId) {
+      toast.warning('Select an event before verifying tickets.');
+      return;
+    }
+
+    try {
+      setManualLoading(true);
+      setManualResult(null);
+      const response = await apiService.manualVerifyTicket({
+        ticketNumber: trimmed,
+        staffUserId: user?.id ?? null,
+        gate: 'Ticket Validation Gate',
+        eventId: selectedEventId
+      });
+
+      const normalized = {
+        ...response,
+        scannedAt: response?.scannedAt ? new Date(response.scannedAt) : null,
+        previousScanAt: response?.previousScanAt ? new Date(response.previousScanAt) : null
+      };
+      setManualResult(normalized);
+
+      const status = (response?.status || '').toLowerCase();
+      if (status === 'valid') {
+        toast.success(response?.message || 'Ticket verified successfully.');
+      } else if (status === 'duplicate') {
+        toast.warning(response?.message || 'Ticket already checked in.');
+      } else {
+        toast.error(response?.message || 'Ticket could not be verified.');
+      }
+
+      sessionStorage.setItem('qrush:pending-dashboard-refresh', 'true');
+      try {
+        await fetchDashboard(selectedEventId, { showSpinner: false });
+      } catch (refreshError) {
+        console.error('Dashboard refresh after manual verification failed', refreshError);
+      } finally {
+        sessionStorage.removeItem('qrush:pending-dashboard-refresh');
+      }
+    } catch (err) {
+      console.error('Manual ticket verification failed', err);
+      toast.error('Unable to verify ticket. Please try again.');
+    } finally {
+      setManualLoading(false);
+    }
+  }, [manualTicket, selectedEventId, user?.id, fetchDashboard]);
+
+  const handleBulkCheckIn = useCallback(async () => {
+    const entries = bulkInput
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+
+    if (entries.length === 0) {
+      toast.warning('Enter at least one ticket number.');
+      return;
+    }
+    if (!selectedEventId) {
+      toast.warning('Select an event before running bulk check-in.');
+      return;
+    }
+
+    try {
+      setBulkLoading(true);
+      setBulkResult(null);
+      const response = await apiService.bulkCheckIn({
+        ticketNumbers: entries,
+        staffUserId: user?.id ?? null,
+        gate: 'Ticket Validation Gate',
+        eventId: selectedEventId
+      });
+
+      const normalizedResults = (response?.results || []).map((result) => ({
+        ...result,
+        scannedAt: result?.scannedAt ? new Date(result.scannedAt) : null,
+        previousScanAt: result?.previousScanAt ? new Date(result.previousScanAt) : null
+      }));
+      setBulkResult({ ...response, results: normalizedResults });
+
+      const { successful = 0, duplicates = 0, invalid = 0 } = response || {};
+      if (successful > 0) {
+        toast.success(`Checked in ${successful} ticket${successful === 1 ? '' : 's'}.`);
+      }
+      if (duplicates > 0) {
+        toast.warning(`${duplicates} duplicate ticket${duplicates === 1 ? ' was' : 's were'} already checked in.`);
+      }
+      if (invalid > 0) {
+        toast.error(`${invalid} ticket${invalid === 1 ? ' was' : 's were'} invalid.`);
+      }
+
+      sessionStorage.setItem('qrush:pending-dashboard-refresh', 'true');
+      try {
+        await fetchDashboard(selectedEventId, { showSpinner: false });
+      } catch (refreshError) {
+        console.error('Dashboard refresh after bulk check-in failed', refreshError);
+      } finally {
+        sessionStorage.removeItem('qrush:pending-dashboard-refresh');
+      }
+    } catch (err) {
+      console.error('Bulk check-in failed', err);
+      toast.error('Unable to complete bulk check-in.');
+    } finally {
+      setBulkLoading(false);
+    }
+  }, [bulkInput, selectedEventId, user?.id, fetchDashboard]);
 
   const scannedTickets = useMemo(() => {
     return (dashboard?.recentScans ?? []).map((scan) => ({
@@ -196,7 +351,15 @@ const StaffDashboard = () => {
           <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Staff dashboard unavailable</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()} className="gradient-orange text-white">
+          <Button
+            onClick={() => {
+              const { location } = globalThis;
+              if (location?.reload) {
+                location.reload();
+              }
+            }}
+            className="gradient-orange text-white"
+          >
             Refresh
           </Button>
         </div>
@@ -210,6 +373,8 @@ const StaffDashboard = () => {
   const checkedIn = dashboard?.checkedIn ?? validScans;
   const pending = dashboard?.pending ?? Math.max(ticketsSold - checkedIn, 0);
   const issueCount = invalidScans;
+  const manualStatus = (manualResult?.status || '').toLowerCase();
+  const bulkResults = Array.isArray(bulkResult?.results) ? bulkResult.results : [];
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -229,8 +394,9 @@ const StaffDashboard = () => {
 
         {events.length > 0 ? (
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select Event</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={eventSelectId}>Select Event</label>
             <select
+              id={eventSelectId}
               value={selectedEventId ?? ''}
               onChange={handleEventChange}
               className="w-full max-w-sm p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -462,13 +628,75 @@ const StaffDashboard = () => {
               <CardContent className="px-0">
                 <div className="max-w-md space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Ticket Number</label>
-                    <Input placeholder="e.g., TCK-001234" className="font-mono" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={manualTicketId}>Ticket Number</label>
+                    <Input
+                      id={manualTicketId}
+                      placeholder="e.g., TCK-001234"
+                      className="font-mono"
+                      value={manualTicket}
+                      onChange={(e) => setManualTicket(e.target.value)}
+                      disabled={manualLoading}
+                    />
                   </div>
-                  <Button className="gradient-orange text-white">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Verify Ticket
+                  {!selectedEventId && (
+                    <p className="text-xs text-orange-600">Select an event to enable manual verification.</p>
+                  )}
+                  <Button
+                    className="gradient-orange text-white"
+                    onClick={handleManualVerify}
+                    disabled={manualLoading || !manualTicket.trim() || !selectedEventId}
+                  >
+                    {manualLoading ? (
+                      'Verifying...'
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Verify Ticket
+                      </>
+                    )}
                   </Button>
+                  {manualResult && (
+                    <div className="mt-4 border border-gray-200 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Badge className={`${getStatusColor(manualStatus)} flex items-center space-x-1`}>
+                            {getStatusIcon(manualStatus)}
+                            <span className="capitalize">{manualStatus || 'pending'}</span>
+                          </Badge>
+                          <span className="font-mono text-sm text-gray-700">{manualResult.ticketNumber || 'Ticket'}</span>
+                        </div>
+                        <span className="text-sm text-gray-500">{formatDateTime(manualResult.scannedAt)}</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{manualResult.message}</p>
+
+                      {manualStatus && manualStatus !== 'invalid' && (
+                        <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-600">
+                          <div>
+                            <p className="uppercase text-xs text-gray-500">Attendee</p>
+                            <p className="font-semibold text-gray-900">{manualResult.attendeeName || 'Guest'}</p>
+                          </div>
+                          <div>
+                            <p className="uppercase text-xs text-gray-500">Email</p>
+                            <p className="font-semibold text-gray-900 break-words">{manualResult.attendeeEmail || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="uppercase text-xs text-gray-500">Event</p>
+                            <p className="font-semibold text-gray-900">{manualResult.eventTitle || 'Event'}</p>
+                          </div>
+                          <div>
+                            <p className="uppercase text-xs text-gray-500">Gate</p>
+                            <p className="font-semibold text-gray-900">{manualResult.gate || 'Main Gate'}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {manualStatus === 'duplicate' && manualResult.previousScanAt && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
+                          Previously scanned {formatDateTime(manualResult.previousScanAt)} • Re-entry attempts: {Math.max(manualResult.reEntryCount ?? 1, 1)}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -483,11 +711,71 @@ const StaffDashboard = () => {
                   <textarea
                     className="w-full h-32 p-3 border border-gray-300 rounded-lg font-mono text-sm"
                     placeholder={BULK_PLACEHOLDER}
+                    value={bulkInput}
+                    onChange={(e) => setBulkInput(e.target.value)}
+                    disabled={bulkLoading}
                   />
-                  <Button className="gradient-orange text-white">
-                    <Users className="w-4 h-4 mr-2" />
-                    Bulk Check-in
+                  {!selectedEventId && (
+                    <p className="text-xs text-orange-600">Select an event to enable bulk check-in.</p>
+                  )}
+                  <Button
+                    className="gradient-orange text-white"
+                    onClick={handleBulkCheckIn}
+                    disabled={bulkLoading || !bulkInput.trim() || !selectedEventId}
+                  >
+                    {bulkLoading ? (
+                      'Processing...'
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4 mr-2" />
+                        Bulk Check-in
+                      </>
+                    )}
                   </Button>
+                  {bulkResult && (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid md:grid-cols-3 gap-3">
+                        <div className="rounded-lg bg-green-50 p-3 text-center">
+                          <p className="text-xs uppercase text-green-700">Checked In</p>
+                          <p className="text-lg font-semibold text-green-800">{bulkResult.successful}</p>
+                        </div>
+                        <div className="rounded-lg bg-yellow-50 p-3 text-center">
+                          <p className="text-xs uppercase text-yellow-700">Duplicates</p>
+                          <p className="text-lg font-semibold text-yellow-800">{bulkResult.duplicates}</p>
+                        </div>
+                        <div className="rounded-lg bg-red-50 p-3 text-center">
+                          <p className="text-xs uppercase text-red-700">Invalid</p>
+                          <p className="text-lg font-semibold text-red-800">{bulkResult.invalid}</p>
+                        </div>
+                      </div>
+
+                      {bulkResults.length > 0 && (
+                        <div className="max-h-56 overflow-y-auto space-y-2">
+                          {bulkResults.map((result, index) => {
+                            const status = (result?.status || '').toLowerCase();
+                            return (
+                              <div
+                                key={`${result.ticketId ?? result.ticketNumber ?? index}`}
+                                className="border border-gray-200 rounded-lg p-3 flex items-center justify-between"
+                              >
+                                <div>
+                                  <p className="font-mono text-sm text-gray-900">{result.ticketNumber || 'Ticket'}</p>
+                                  <p className="text-xs text-gray-500">{result.attendeeName || 'Guest'}</p>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-xs text-gray-500">{formatDateTime(result.scannedAt)}</span>
+                                  <Badge className={`${getStatusColor(status)} flex items-center space-x-1`}>
+                                    {getStatusIcon(status)}
+                                    <span className="capitalize">{status || 'pending'}</span>
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
