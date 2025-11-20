@@ -1,3 +1,4 @@
+/* global globalThis */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -22,7 +23,9 @@ const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedData, setScannedData] = useState(null);
   const [cameraError, setCameraError] = useState(null);
-  const [barcodeSupported, setBarcodeSupported] = useState(() => typeof window !== 'undefined' && 'BarcodeDetector' in window);
+  const [barcodeSupported, setBarcodeSupported] = useState(
+    () => typeof globalThis !== 'undefined' && 'BarcodeDetector' in globalThis
+  );
   const [scannerMessage, setScannerMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const videoRef = useRef(null);
@@ -31,8 +34,8 @@ const QRScanner = () => {
   const lastScannedCodeRef = useRef(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setBarcodeSupported('BarcodeDetector' in window);
+    if (typeof globalThis !== 'undefined') {
+      setBarcodeSupported('BarcodeDetector' in globalThis);
     }
   }, []);
 
@@ -53,7 +56,9 @@ const QRScanner = () => {
       frameRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      for (const track of streamRef.current.getTracks()) {
+        track.stop();
+      }
       streamRef.current = null;
     }
     if (videoRef.current) {
@@ -89,6 +94,7 @@ const QRScanner = () => {
       };
 
       setScannedData(normalized);
+      sessionStorage.setItem('qrush:pending-dashboard-refresh', 'true');
 
       const status = (response?.status || '').toLowerCase();
       if (status === 'valid') {
@@ -109,7 +115,10 @@ const QRScanner = () => {
   }, [isProcessing, stopScanning, user?.id]);
 
   const startScanning = useCallback(async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const nav = globalThis?.navigator;
+    const mediaDevices = nav?.mediaDevices;
+    const getUserMedia = mediaDevices?.getUserMedia;
+    if (typeof getUserMedia !== 'function') {
       setCameraError('Camera access is not supported on this device.');
       return;
     }
@@ -121,7 +130,7 @@ const QRScanner = () => {
       setIsProcessing(false);
       lastScannedCodeRef.current = null;
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
         audio: false
       });
@@ -149,7 +158,7 @@ const QRScanner = () => {
     }
 
     let cancelled = false;
-    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+    const detector = new globalThis.BarcodeDetector({ formats: ['qr_code'] });
 
     const detect = async () => {
       if (cancelled) {
@@ -205,6 +214,17 @@ const QRScanner = () => {
     }
   };
 
+  const getStatusTitle = (status) => {
+    switch (status) {
+      case 'valid':
+        return 'Valid Ticket';
+      case 'duplicate':
+        return 'Duplicate Scan';
+      default:
+        return 'Invalid Ticket';
+    }
+  };
+
   const formatTime = (value) => {
     if (!value) {
       return '--:--';
@@ -245,46 +265,7 @@ const QRScanner = () => {
         {/* Scanner Interface */}
         <Card className="mb-8">
           <CardContent className="p-8">
-            {!isScanning ? (
-              <div className="text-center space-y-6">
-                <div className="w-32 h-32 gradient-orange rounded-full flex items-center justify-center mx-auto">
-                  <QrCode className="w-16 h-16 text-white" />
-                </div>
-                
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                    Ready to Scan
-                  </h2>
-                  <p className="text-gray-600">
-                    Position the QR code within the camera frame to scan tickets
-                  </p>
-                </div>
-
-                {cameraError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex items-start space-x-2">
-                    <AlertTriangle className="w-4 h-4 mt-0.5" />
-                    <span>{cameraError}</span>
-                  </div>
-                )}
-
-                <Button
-                  onClick={startScanning}
-                  className="gradient-orange text-white text-lg px-8 py-4 h-auto"
-                  disabled={isProcessing}
-                >
-                  <Camera className="w-6 h-6 mr-3" />
-                  Start Camera
-                </Button>
-
-                <div className="text-sm text-gray-500 space-y-1">
-                  <p>Logged in as: <strong>{user.name}</strong></p>
-                  <p>Gate: Main Entrance</p>
-                  {scannerMessage && (
-                    <p className="text-xs text-gray-500">{scannerMessage}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
+            {isScanning ? (
               <div className="space-y-6">
                 <div className="max-w-md mx-auto w-full">
                   <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-black shadow-inner">
@@ -323,6 +304,45 @@ const QRScanner = () => {
                   </Button>
                 </div>
               </div>
+            ) : (
+              <div className="text-center space-y-6">
+                <div className="w-32 h-32 gradient-orange rounded-full flex items-center justify-center mx-auto">
+                  <QrCode className="w-16 h-16 text-white" />
+                </div>
+                
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                    Ready to Scan
+                  </h2>
+                  <p className="text-gray-600">
+                    Position the QR code within the camera frame to scan tickets
+                  </p>
+                </div>
+
+                {cameraError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex items-start space-x-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5" />
+                    <span>{cameraError}</span>
+                  </div>
+                )}
+
+                <Button
+                  onClick={startScanning}
+                  className="gradient-orange text-white text-lg px-8 py-4 h-auto"
+                  disabled={isProcessing}
+                >
+                  <Camera className="w-6 h-6 mr-3" />
+                  Start Camera
+                </Button>
+
+                <div className="text-sm text-gray-500 space-y-1">
+                  <p>Logged in as: <strong>{user.name}</strong></p>
+                  <p>Gate: Main Entrance</p>
+                  {scannerMessage && (
+                    <p className="text-xs text-gray-500">{scannerMessage}</p>
+                  )}
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -339,9 +359,7 @@ const QRScanner = () => {
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-semibold text-gray-900">
-                      {scannedStatus === 'valid' ? 'Valid Ticket'
-                        : scannedStatus === 'duplicate' ? 'Duplicate Scan'
-                        : 'Invalid Ticket'}
+                      {getStatusTitle(scannedStatus || 'invalid')}
                     </h3>
                     <Badge className={getStatusColor(scannedStatus || 'invalid')}>
                       {(scannedStatus || 'invalid').toUpperCase()}
