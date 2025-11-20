@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
@@ -23,4 +24,6 @@ public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
 
 	@Query("SELECT COALESCE(SUM(t.price), 0) FROM TicketEntity t WHERE t.event.eventID = :eventId")
 	Double sumRevenueByEvent(@Param("eventId") Long eventId);
+
+	Optional<TicketEntity> findByQrCode(String qrCode);
 }
