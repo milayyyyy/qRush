@@ -27,6 +27,8 @@ const AuthPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const [currentTab, setCurrentTab] = useState('login'); // default tab
+
   // Form validation state tracking
   const [touchedFields, setTouchedFields] = useState({});
   const [email, setEmail] = useState('');
@@ -149,7 +151,24 @@ const AuthPage = () => {
         });
       }
 
-      // User data transformation from backend to frontend format
+      if (!isLogin) {
+        // Signup flow
+        toast.success(response.message); // Signup successful message
+
+        // Clear all signup inputs
+        setName('');
+        setEmail('');
+        setPassword('');
+        setSelectedRole('');
+        setTouchedFields({});
+
+        setCurrentTab('login');        // redirect user to login tab
+
+        
+        return;
+      }
+
+      // Login flow (keep the existing login code here)
       const userData = {
         id: response.userID,
         email: response.email,
@@ -159,10 +178,8 @@ const AuthPage = () => {
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.email}`
       };
 
-      // Global authentication state update
       login(userData);
-      toast.success(`Welcome ${isLogin ? 'back' : 'to QRush'}, ${userData.name}!`);
-      
+      toast.success(`Welcome back, ${userData.name}!`);
       navigate('/dashboard');
       
     } catch (error) {
@@ -272,8 +289,9 @@ const AuthPage = () => {
             </CardDescription>
           </CardHeader>
 
+          
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login" className="text-sm font-medium">
                   Sign In

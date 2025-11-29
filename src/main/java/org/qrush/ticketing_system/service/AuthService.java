@@ -30,13 +30,8 @@ public class AuthService {
 
         UserEntity savedUser = userRepository.save(user);
 
-        return new AuthResponse(
-            savedUser.getUserID(),
-            savedUser.getName(),
-            savedUser.getEmail(),
-            savedUser.getRole(),
-            savedUser.getContact()
-        );
+        return new AuthResponse("Signup successful");
+
     }
 
     public AuthResponse loginUser(LoginRequest loginRequest) {

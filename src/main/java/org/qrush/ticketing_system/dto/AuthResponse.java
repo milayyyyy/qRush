@@ -1,14 +1,18 @@
 package org.qrush.ticketing_system.dto;
 
 public class AuthResponse {
+
     private Long userID;
     private String name;
     private String email;
     private String role;
     private String contact;
 
+    private String message; 
+
     public AuthResponse() {}
 
+    
     public AuthResponse(Long userID, String name, String email, String role, String contact) {
         this.userID = userID;
         this.name = name;
@@ -17,7 +21,12 @@ public class AuthResponse {
         this.contact = contact;
     }
 
-    // Getters and Setters
+    
+    public AuthResponse(String message) {
+        this.message = message;
+    }
+
+    
     public Long getUserID() { return userID; }
     public void setUserID(Long userID) { this.userID = userID; }
 
@@ -32,4 +41,7 @@ public class AuthResponse {
 
     public String getContact() { return contact; }
     public void setContact(String contact) { this.contact = contact; }
+
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
 }
