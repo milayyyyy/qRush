@@ -19,13 +19,22 @@ const EventCard = ({ event }) => {
   };
 
   const getAvailabilityStatus = (registered, capacity) => {
-    const percentage = (registered / capacity) * 100;
+    if (!capacity) {
+      return { text: 'Capacity TBA', color: 'bg-blue-100 text-blue-700' };
+    }
+
+    const reg = Number(registered) || 0;
+    const cap = Number(capacity);
+    const percentage = Math.min((reg / cap) * 100, 100);
+
+    if (percentage >= 100) return { text: 'Sold Out', color: 'bg-gray-100 text-gray-700' };
     if (percentage >= 95) return { text: 'Almost Full', color: 'bg-red-100 text-red-700' };
     if (percentage >= 75) return { text: 'Filling Fast', color: 'bg-yellow-100 text-yellow-700' };
     return { text: 'Available', color: 'bg-green-100 text-green-700' };
   };
 
-  const availability = getAvailabilityStatus(event.registered, event.capacity);
+  const availability = getAvailabilityStatus(event.ticketsSold, event.capacity);
+  
 
   return (
     <Card className="event-card overflow-hidden hover:shadow-lg transition-shadow duration-300">

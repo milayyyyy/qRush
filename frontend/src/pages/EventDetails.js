@@ -41,7 +41,12 @@ const getAvailabilityStatus = (registered, capacity) => {
   if (!capacity) {
     return { text: 'Capacity TBA', color: 'bg-blue-100 text-blue-700' };
   }
-  const percentage = Math.min((registered / capacity) * 100, 100);
+
+  const reg = Number(registered) || 0; 
+  const cap = Number(capacity);
+  const percentage = Math.min((reg / cap) * 100, 100);
+
+  if (percentage >= 100) return { text: 'Sold Out', color: 'bg-gray-100 text-gray-700' };
   if (percentage >= 95) return { text: 'Almost Full', color: 'bg-red-100 text-red-700' };
   if (percentage >= 75) return { text: 'Filling Fast', color: 'bg-yellow-100 text-yellow-700' };
   return { text: 'Available', color: 'bg-green-100 text-green-700' };
@@ -528,7 +533,7 @@ const EventDetails = () => {
                     <div className="flex items-center space-x-3">
                       <Users className="w-5 h-5 text-orange-500" />
                       <div>
-                        <p className="font-semibold text-gray-900">Attendance</p>
+                        <p className="font-semibold text-gray-900">Registered</p>
                         <p className="text-gray-600">{event.capacity ? `${event.registered} / ${event.capacity} people` : attendeeSummary}</p>
                         <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                           <div 
