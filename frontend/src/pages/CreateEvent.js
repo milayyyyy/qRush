@@ -16,7 +16,10 @@ import {
   Save,
   Eye,
   CheckCircle,
-  List
+  List,
+  Plus,
+  Trash2,
+  Ticket
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
@@ -31,17 +34,24 @@ const generateUniqueId = (prefix = 'id') => {
   return `${prefix}-${timePart}-${counterPart}`;
 };
 
-const createFeatureItem = (value = '') => ({
-  id: generateUniqueId('feature'),
-  value,
-});
-
 const createAgendaItem = (overrides = {}) => ({
   id: generateUniqueId('agenda'),
   time: typeof overrides.time === 'string' ? overrides.time : '',
   title: typeof overrides.title === 'string' ? overrides.title : '',
   speaker: typeof overrides.speaker === 'string' ? overrides.speaker : '',
 });
+
+const createTicketType = (overrides = {}) => ({
+  id: generateUniqueId('ticket'),
+  name: typeof overrides.name === 'string' ? overrides.name : 'Regular',
+  price: typeof overrides.price === 'number' ? overrides.price : 100,
+  description: typeof overrides.description === 'string' ? overrides.description : '',
+  features: Array.isArray(overrides.features) ? overrides.features : [],
+});
+
+const DEFAULT_TICKET_TYPES = [
+  { name: 'Regular', price: 100, description: 'Standard admission', features: ['General admission', 'Access to main event'] },
+];
 
 const CreateEvent = () => {
   const navigate = useNavigate();
@@ -65,11 +75,12 @@ const CreateEvent = () => {
     location: '',
     address: '',
     category: 'technology',
-    price: 0,
+    price: 1,
     capacity: 100,
     image: '',
-    features: [createFeatureItem()],
-    agenda: [createAgendaItem()]
+    features: [],
+    agenda: [createAgendaItem()],
+    ticketTypes: DEFAULT_TICKET_TYPES.map(t => createTicketType(t))
   });
   const fileInputRef = useRef(null);
 
@@ -82,8 +93,7 @@ const CreateEvent = () => {
       return values
         .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
         .map((value) => value.trim())
-        .filter((value) => value.length > 0)
-        .map((value) => createFeatureItem(value));
+        .filter((value) => value.length > 0);
     };
 
     if (Array.isArray(rawFeatures)) {
@@ -177,6 +187,61 @@ const CreateEvent = () => {
         };
       })
       .filter((item) => item.time || item.title || item.speaker);
+  }, []);
+
+  const parseResponseTicketTypes = useCallback((rawTicketTypes) => {
+    if (!rawTicketTypes) {
+      return [];
+    }
+
+    const toTicketTypeItems = (items) => {
+      return items
+        .map((item) => ({
+          name: typeof item?.name === 'string' ? item.name : 'Regular',
+          price: typeof item?.price === 'number' ? item.price : 0,
+          description: typeof item?.description === 'string' ? item.description : '',
+          features: Array.isArray(item?.features) ? item.features : [],
+        }))
+        .filter((item) => item.name)
+        .map((item) => createTicketType(item));
+    };
+
+    if (Array.isArray(rawTicketTypes)) {
+      return toTicketTypeItems(rawTicketTypes);
+    }
+
+    if (typeof rawTicketTypes === 'string') {
+      const trimmed = rawTicketTypes.trim();
+      if (!trimmed) {
+        return [];
+      }
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return toTicketTypeItems(parsed);
+        }
+      } catch (err) {
+        console.warn('Unable to parse ticket types', err);
+      }
+    }
+
+    return [];
+  }, []);
+
+  const sanitizeTicketTypes = useCallback((ticketTypes) => {
+    return (ticketTypes || [])
+      .map((item) => {
+        const source = item && typeof item === 'object' ? item : {};
+        return {
+          name: typeof source.name === 'string' ? source.name.trim() : 'Regular',
+          price: typeof source.price === 'number' ? source.price : 0,
+          description: typeof source.description === 'string' ? source.description.trim() : '',
+          features: Array.isArray(source.features) 
+            ? source.features.filter(f => typeof f === 'string' && f.trim()).map(f => f.trim())
+            : [],
+        };
+      })
+      .filter((item) => item.name);
   }, []);
 
   const parseStoredOrganizerProfile = useCallback(() => {
@@ -283,8 +348,11 @@ const CreateEvent = () => {
           price: data.ticketPrice !== null && data.ticketPrice !== undefined ? String(data.ticketPrice) : prev.price,
           capacity: data.capacity !== null && data.capacity !== undefined ? String(data.capacity) : prev.capacity,
           image: data.image || '',
-          features: parsedFeatures.length > 0 ? parsedFeatures : [createFeatureItem()],
+          features: parsedFeatures,
           agenda: parsedAgenda.length > 0 ? parsedAgenda : [createAgendaItem()],
+          ticketTypes: parseResponseTicketTypes(data.ticketTypes).length > 0 
+            ? parseResponseTicketTypes(data.ticketTypes) 
+            : DEFAULT_TICKET_TYPES.map(t => createTicketType(t)),
         }));
 
         setOrganizerProfile({
@@ -308,6 +376,7 @@ const CreateEvent = () => {
     navigate,
     parseResponseAgenda,
     parseResponseFeatures,
+    parseResponseTicketTypes,
     parseStoredOrganizerProfile,
     user?.email,
     user?.id,
@@ -327,50 +396,27 @@ const CreateEvent = () => {
 
   useEffect(() => {
     setFormData((prev) => {
-      const needsFeatureNormalization = prev.features.some(
-        (feature) => !feature || typeof feature !== 'object' || !feature.id
-      );
       const needsAgendaNormalization = prev.agenda.some(
         (item) => !item || typeof item !== 'object' || !item.id
       );
 
-      if (!needsFeatureNormalization && !needsAgendaNormalization) {
+      if (!needsAgendaNormalization) {
         return prev;
       }
 
-      const normalizedFeatures = needsFeatureNormalization
-        ? prev.features.map((feature) => {
-            if (feature && typeof feature === 'object' && feature.id) {
-              return feature;
-            }
-
-            let rawValue = '';
-            if (typeof feature === 'string') {
-              rawValue = feature;
-            } else if (feature && typeof feature.value === 'string') {
-              rawValue = feature.value;
-            }
-
-            return createFeatureItem(rawValue);
-          })
-        : prev.features;
-
-      const normalizedAgenda = needsAgendaNormalization
-        ? prev.agenda.map((item) => {
-            if (item && typeof item === 'object' && item.id) {
-              return item;
-            }
-            return createAgendaItem({
-              time: typeof item?.time === 'string' ? item.time : '',
-              title: typeof item?.title === 'string' ? item.title : '',
-              speaker: typeof item?.speaker === 'string' ? item.speaker : '',
-            });
-          })
-        : prev.agenda;
+      const normalizedAgenda = prev.agenda.map((item) => {
+        if (item && typeof item === 'object' && item.id) {
+          return item;
+        }
+        return createAgendaItem({
+          time: typeof item?.time === 'string' ? item.time : '',
+          title: typeof item?.title === 'string' ? item.title : '',
+          speaker: typeof item?.speaker === 'string' ? item.speaker : '',
+        });
+      });
 
       return {
         ...prev,
-        features: normalizedFeatures,
         agenda: normalizedAgenda,
       };
     });
@@ -422,32 +468,6 @@ const CreateEvent = () => {
     event.target.value = '';
   };
 
-  const handleFeatureChange = (id, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: prev.features.map((feature) => (
-        feature?.id === id ? { ...feature, value } : feature
-      )),
-    }));
-  };
-
-  const addFeature = () => {
-    setFormData((prev) => ({
-      ...prev,
-      features: [...prev.features, createFeatureItem()],
-    }));
-  };
-
-  const removeFeature = (id) => {
-    setFormData((prev) => {
-      const remaining = prev.features.filter((feature) => feature?.id !== id);
-      return {
-        ...prev,
-        features: remaining.length > 0 ? remaining : [createFeatureItem()],
-      };
-    });
-  };
-
   const handleAgendaChange = (id, field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -470,6 +490,32 @@ const CreateEvent = () => {
       return {
         ...prev,
         agenda: remaining.length > 0 ? remaining : [createAgendaItem()],
+      };
+    });
+  };
+
+  const handleTicketTypeChange = (id, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.map((item) => (
+        item?.id === id ? { ...item, [field]: field === 'price' ? Number(value) || 0 : value } : item
+      )),
+    }));
+  };
+
+  const addTicketType = () => {
+    setFormData((prev) => ({
+      ...prev,
+      ticketTypes: [...prev.ticketTypes, createTicketType({ name: '', price: 0, description: '' })],
+    }));
+  };
+
+  const removeTicketType = (id) => {
+    setFormData((prev) => {
+      const remaining = prev.ticketTypes.filter((item) => item?.id !== id);
+      return {
+        ...prev,
+        ticketTypes: remaining.length > 0 ? remaining : [createTicketType()],
       };
     });
   };
@@ -512,6 +558,12 @@ const CreateEvent = () => {
       .join('\n\n');
     const normalizedFeatures = sanitizeFeatures(formData.features);
     const normalizedAgenda = sanitizeAgenda(formData.agenda);
+    const normalizedTicketTypes = sanitizeTicketTypes(formData.ticketTypes);
+
+    // Get the minimum price from ticket types for backward compatibility
+    const minPrice = normalizedTicketTypes.length > 0 
+      ? Math.min(...normalizedTicketTypes.map(t => t.price))
+      : Number(formData.price) || 0;
 
     const payload = {
       name: formData.title,
@@ -519,7 +571,7 @@ const CreateEvent = () => {
       category: formData.category,
       startDate: startDateTime,
       endDate: endDateTime,
-      ticketPrice: Number.isFinite(Number(formData.price)) ? Number(formData.price) : 0,
+      ticketPrice: minPrice,
       capacity: Number.isFinite(Number(formData.capacity)) ? Number(formData.capacity) : 0,
       organizer: user.name,
       organizerDisplayName: (organizerProfile.organizationName || user.name || '').trim(),
@@ -529,6 +581,7 @@ const CreateEvent = () => {
       image: formData.image || null,
       features: JSON.stringify(normalizedFeatures),
       agenda: JSON.stringify(normalizedAgenda),
+      ticketTypes: JSON.stringify(normalizedTicketTypes),
     };
 
     try {
@@ -550,13 +603,6 @@ const CreateEvent = () => {
 
   const pageTitle = isEditMode ? 'Edit Event' : 'Create New Event';
   const submitLabel = isEditMode ? 'Save Changes' : 'Publish Event';
-  const previewFeatureItems = (formData.features || [])
-    .filter((feature) => feature && typeof feature === 'object' && feature.id)
-    .map((feature) => ({
-      id: feature.id,
-      value: typeof feature.value === 'string' ? feature.value.trim() : '',
-    }))
-    .filter((item) => item.value.length > 0);
 
   const previewAgendaItems = (formData.agenda || [])
     .filter((item) => item && typeof item === 'object' && item.id)
@@ -570,36 +616,36 @@ const CreateEvent = () => {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading event details...</p>
+          <p className="mt-4 text-gray-400">Loading event details...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-black py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors"
+            className="flex items-center space-x-2 text-gray-400 hover:text-orange-500 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back to Dashboard</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
+          <h1 className="text-3xl font-bold text-white">{pageTitle}</h1>
           <div></div>
         </div>
 
         <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-8">
           {/* Basic Information */}
-          <Card>
+          <Card className="bg-gray-900 border-orange-600/20">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <Calendar className="w-5 h-5 text-orange-500" />
                 <span>Basic Information</span>
               </CardTitle>
@@ -625,7 +671,7 @@ const CreateEvent = () => {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full p-2 border border-orange-600/30 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
                     {categories.map(cat => (
                       <option key={cat.value} value={cat.value}>
@@ -724,9 +770,9 @@ const CreateEvent = () => {
           </Card>
 
           {/* Date & Time */}
-          <Card>
+          <Card className="bg-gray-900 border-orange-600/20">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <Clock className="w-5 h-5 text-orange-500" />
                 <span>Date & Time</span>
               </CardTitle>
@@ -773,9 +819,9 @@ const CreateEvent = () => {
           </Card>
 
           {/* Location */}
-          <Card>
+          <Card className="bg-gray-900 border-orange-600/20">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <MapPin className="w-5 h-5 text-orange-500" />
                 <span>Location</span>
               </CardTitle>
@@ -807,33 +853,163 @@ const CreateEvent = () => {
             </CardContent>
           </Card>
 
-          {/* Pricing & Capacity */}
-          <Card>
+          {/* Ticket Types & Capacity */}
+          <Card className="bg-gray-900 border-orange-600/20">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <DollarSign className="w-5 h-5 text-orange-500" />
-                <span>Pricing & Capacity</span>
+              <CardTitle className="flex items-center space-x-2 text-white">
+                <Ticket className="w-5 h-5 text-orange-500" />
+                <span>Ticket Types & Capacity</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Ticket Price (₱)</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                  />
-                  <p className="text-sm text-gray-500">
-                    Set to 0 for free events
-                  </p>
+              {/* Ticket Types */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Ticket Types</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTicketType}
+                    className="text-orange-500 border-orange-500/30 hover:bg-orange-500/10"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Type
+                  </Button>
                 </div>
+                <p className="text-sm text-gray-500">
+                  Define ticket tiers like SVIP, VIP, Regular, etc. Each type can have its own price.
+                </p>
                 
+                {formData.ticketTypes.map((ticketType, index) => (
+                  <div key={ticketType.id} className="p-4 border border-gray-700 rounded-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-300">Ticket Type {index + 1}</span>
+                      {formData.ticketTypes.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeTicketType(ticketType.id)}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <Label htmlFor={`ticket-name-${ticketType.id}`}>Name *</Label>
+                        <Input
+                          id={`ticket-name-${ticketType.id}`}
+                          value={ticketType.name}
+                          onChange={(e) => handleTicketTypeChange(ticketType.id, 'name', e.target.value)}
+                          placeholder="e.g., VIP, Regular, SVIP"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`ticket-price-${ticketType.id}`}>Price (₱) *</Label>
+                        <Input
+                          id={`ticket-price-${ticketType.id}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={ticketType.price}
+                          onChange={(e) => handleTicketTypeChange(ticketType.id, 'price', e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`ticket-desc-${ticketType.id}`}>Short Description</Label>
+                        <Input
+                          id={`ticket-desc-${ticketType.id}`}
+                          value={ticketType.description}
+                          onChange={(e) => handleTicketTypeChange(ticketType.id, 'description', e.target.value)}
+                          placeholder="e.g., Best value for groups"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* What's Included */}
+                    <div className="space-y-2 pt-2 border-t border-gray-700/50">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm text-gray-400">What's Included</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              ticketTypes: prev.ticketTypes.map(t => 
+                                t.id === ticketType.id 
+                                  ? { ...t, features: [...(t.features || []), ''] }
+                                  : t
+                              )
+                            }));
+                          }}
+                          className="text-orange-500 hover:text-orange-400 text-xs h-7"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Item
+                        </Button>
+                      </div>
+                      {(ticketType.features || []).length === 0 ? (
+                        <p className="text-xs text-gray-500 italic">No items added yet. Click "Add Item" to list what's included with this ticket type.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(ticketType.features || []).map((feature, featureIndex) => (
+                            <div key={featureIndex} className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              <Input
+                                value={feature}
+                                onChange={(e) => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    ticketTypes: prev.ticketTypes.map(t => 
+                                      t.id === ticketType.id 
+                                        ? { 
+                                            ...t, 
+                                            features: t.features.map((f, i) => 
+                                              i === featureIndex ? e.target.value : f
+                                            )
+                                          }
+                                        : t
+                                    )
+                                  }));
+                                }}
+                                placeholder="e.g., Front row seating, Meet & greet, Free merchandise"
+                                className="flex-1 h-8 text-sm"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    ticketTypes: prev.ticketTypes.map(t => 
+                                      t.id === ticketType.id 
+                                        ? { ...t, features: t.features.filter((_, i) => i !== featureIndex) }
+                                        : t
+                                    )
+                                  }));
+                                }}
+                                className="text-red-400 hover:text-red-300 h-8 w-8 p-0"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Capacity */}
+              <div className="pt-4 border-t border-gray-700">
                 <div className="space-y-2">
                   <Label htmlFor="capacity">Maximum Capacity *</Label>
                   <Input
@@ -845,63 +1021,27 @@ const CreateEvent = () => {
                     onChange={handleInputChange}
                     placeholder="100"
                     required
+                    className="max-w-xs"
                   />
                   <p className="text-sm text-gray-500">
-                    Maximum number of attendees
+                    Maximum total number of attendees across all ticket types
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* What's Included */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="w-5 h-5 text-orange-500" />
-                <span>What's Included</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {formData.features.map((featureItem) => (
-                <div
-                  key={featureItem.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3"
-                >
-                  <Input
-                    value={featureItem?.value ?? ''}
-                    onChange={(event) => handleFeatureChange(featureItem.id, event.target.value)}
-                    placeholder="Add a highlight or inclusion"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFeature(featureItem.id)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-              <div>
-                <Button type="button" variant="outline" size="sm" onClick={addFeature}>
-                  Add Feature
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Event Agenda */}
-          <Card>
+          <Card className="bg-gray-900 border-orange-600/20">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <List className="w-5 h-5 text-orange-500" />
                 <span>Event Agenda</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {formData.agenda.map((item) => (
-                <div key={item.id} className="border border-gray-200 rounded-lg p-4 space-y-4">
+                <div key={item.id} className="border border-gray-700 rounded-lg p-4 space-y-4">
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor={`agenda-time-${item.id}`}>Time</Label>
@@ -953,15 +1093,15 @@ const CreateEvent = () => {
 
           {/* Preview */}
           {formData.title && (
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-gray-800 border-orange-600/30">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-blue-900">
+                <CardTitle className="flex items-center space-x-2 text-orange-500">
                   <Eye className="w-5 h-5" />
                   <span>Event Preview</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-white rounded-lg p-6 shadow-sm">
+                <div className="bg-gray-900 rounded-lg p-6 shadow-sm border border-gray-700">
                   {formData.image && (
                     <img
                       src={formData.image}
@@ -969,13 +1109,13 @@ const CreateEvent = () => {
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
                   )}
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-semibold text-white mb-2">
                     {formData.title}
                   </h3>
                   {formData.description && (
-                    <p className="text-gray-600 mb-4">{formData.description}</p>
+                    <p className="text-gray-400 mb-4">{formData.description}</p>
                   )}
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
                     {formData.date && (
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-orange-500" />
@@ -997,23 +1137,13 @@ const CreateEvent = () => {
                       <span>{formData.capacity} capacity</span>
                     </div>
                   </div>
-                  {previewFeatureItems.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">What's Included</h4>
-                      <ul className="list-disc list-inside space-y-1 text-gray-600">
-                        {previewFeatureItems.map((feature) => (
-                          <li key={feature.id}>{feature.value}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                   {previewAgendaItems.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Event Agenda</h4>
-                      <div className="space-y-2 text-gray-600">
+                      <h4 className="font-semibold text-white mb-2">Event Agenda</h4>
+                      <div className="space-y-2 text-gray-400">
                         {previewAgendaItems.map((item) => (
                           <div key={item.id}>
-                            <span className="text-sm font-medium text-orange-600 block">
+                            <span className="text-sm font-medium text-orange-500 block">
                               {item.time || 'TBD'}
                             </span>
                             <span className="block">{item.title || 'Agenda item'}</span>
@@ -1043,7 +1173,7 @@ const CreateEvent = () => {
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
                   <span>Saving...</span>
                 </div>
               ) : (
@@ -1073,12 +1203,12 @@ const CreateEvent = () => {
             </Button>
           </div>
 
-          <div className="text-center text-sm text-gray-600">
+          <div className="text-center text-sm text-gray-400">
             <p>
               By publishing this event, you agree to our{' '}
-              <button type="button" className="text-orange-600 hover:underline">Terms of Service</button>
+              <button type="button" className="text-orange-500 hover:underline">Terms of Service</button>
               {' '}and{' '}
-              <button type="button" className="text-orange-600 hover:underline">Event Guidelines</button>
+              <button type="button" className="text-orange-500 hover:underline">Event Guidelines</button>
             </p>
           </div>
         </form>

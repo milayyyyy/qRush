@@ -176,10 +176,10 @@ const TicketView = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your ticket...</p>
+          <p className="mt-4 text-gray-400">Loading your ticket...</p>
         </div>
       </div>
     );
@@ -187,11 +187,11 @@ const TicketView = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Ticket unavailable</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <AlertCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Ticket unavailable</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
           <Button onClick={() => navigate('/dashboard')}>
             Back to Dashboard
           </Button>
@@ -202,11 +202,11 @@ const TicketView = () => {
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Ticket Not Found</h2>
-          <p className="text-gray-600 mb-4">The ticket you're looking for doesn't exist.</p>
+          <Ticket className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Ticket Not Found</h2>
+          <p className="text-gray-400 mb-4">The ticket you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/dashboard')}>
             Back to Dashboard
           </Button>
@@ -216,13 +216,13 @@ const TicketView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-black py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors"
+            className="flex items-center space-x-2 text-gray-400 hover:text-orange-500 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back</span>
@@ -241,20 +241,20 @@ const TicketView = () => {
         </div>
 
         {/* Ticket Card */}
-        <Card className="overflow-hidden shadow-xl border-0 mb-8">
+        <Card className="overflow-hidden shadow-xl border-orange-600/20 bg-gray-900 mb-8">
           {/* Header Section */}
-          <div className="gradient-orange p-6 text-white">
+          <div className="gradient-orange p-6 text-black">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <Badge className="bg-white/20 text-white border-white/30 mb-3">
+                <Badge className="bg-black/20 text-black border-black/30 mb-3">
                   <CheckCircle className="w-3 h-3 mr-1" />
                   {ticket.status.toUpperCase()}
                 </Badge>
                 <h1 className="text-2xl font-bold mb-2">{ticket.eventTitle}</h1>
-                <p className="text-orange-100 opacity-90">{ticket.category}</p>
+                <p className="text-gray-800 opacity-90">{ticket.category}</p>
               </div>
               <div className="text-right">
-                <p className="text-orange-100 text-sm">Ticket #</p>
+                <p className="text-gray-800 text-sm">Ticket #</p>
                 <p className="font-mono font-bold">{ticket.ticketNumber}</p>
               </div>
             </div>
@@ -270,7 +270,7 @@ const TicketView = () => {
                   className="w-48 h-48 mx-auto rounded-lg"
                 />
               </div>
-              <p className="text-sm text-gray-600 mt-4 flex items-center justify-center">
+              <p className="text-sm text-gray-400 mt-4 flex items-center justify-center">
                 <Smartphone className="w-4 h-4 mr-2" />
                 Show this QR code at the entrance
               </p>
@@ -282,17 +282,17 @@ const TicketView = () => {
                 <div className="flex items-start space-x-3">
                   <Calendar className="w-5 h-5 text-orange-500 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-gray-900">Date & Time</p>
-                    <p className="text-gray-600">{formatDate(ticket.startDate)}</p>
-                    <p className="text-gray-600">{formatTimeRange(ticket.startDate, ticket.endDate)}</p>
+                    <p className="font-semibold text-white">Date & Time</p>
+                    <p className="text-gray-400">{formatDate(ticket.startDate)}</p>
+                    <p className="text-gray-400">{formatTimeRange(ticket.startDate, ticket.endDate)}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start space-x-3">
                   <MapPin className="w-5 h-5 text-orange-500 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-gray-900">Venue</p>
-                    <p className="text-gray-600">{ticket.location}</p>
+                    <p className="font-semibold text-white">Venue</p>
+                    <p className="text-gray-400">{ticket.location}</p>
                     {ticket.address && (
                       <p className="text-sm text-gray-500 whitespace-pre-line">{ticket.address}</p>
                     )}
@@ -304,8 +304,8 @@ const TicketView = () => {
                 <div className="flex items-start space-x-3">
                   <User className="w-5 h-5 text-orange-500 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-gray-900">Attendee</p>
-                    <p className="text-gray-600">{ticket.attendeeName}</p>
+                    <p className="font-semibold text-white">Attendee</p>
+                    <p className="text-gray-400">{ticket.attendeeName}</p>
                     <p className="text-sm text-gray-500">{ticket.attendeeEmail}</p>
                   </div>
                 </div>
@@ -313,32 +313,32 @@ const TicketView = () => {
                 <div className="flex items-start space-x-3">
                   <Ticket className="w-5 h-5 text-orange-500 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-gray-900">Seat & Gate</p>
-                    <p className="text-gray-600">Seat: {ticket.seat}</p>
-                    <p className="text-gray-600">Gate: {ticket.gate}</p>
+                    <p className="font-semibold text-white">Seat & Gate</p>
+                    <p className="text-gray-400">Seat: {ticket.seat}</p>
+                    <p className="text-gray-400">Gate: {ticket.gate}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Purchase Info */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-800 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Purchase Date</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-400">Purchase Date</p>
+                  <p className="font-semibold text-white">
                     {ticket.purchaseDate
                       ? new Date(ticket.purchaseDate).toLocaleDateString('en-US')
                       : '—'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Amount Paid</p>
-                  <p className="font-semibold text-gray-900">{formatCurrency(ticket.price)}</p>
+                  <p className="text-sm text-gray-400">Amount Paid</p>
+                  <p className="font-semibold text-orange-500">{formatCurrency(ticket.price)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Organized by</p>
-                  <p className="font-semibold text-gray-900">{ticket.organizer}</p>
+                  <p className="text-sm text-gray-400">Organized by</p>
+                  <p className="font-semibold text-white">{ticket.organizer}</p>
                 </div>
               </div>
             </div>
@@ -346,9 +346,9 @@ const TicketView = () => {
         </Card>
 
         {/* Event Instructions */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-gray-900 border-orange-600/20">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
               <Clock className="w-5 h-5 text-orange-500 mr-2" />
               Important Instructions
             </h3>
@@ -356,7 +356,7 @@ const TicketView = () => {
               {ticket.instructions.map((instruction) => (
                 <li key={instruction} className="flex items-start space-x-3">
                   <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
-                  <span className="text-gray-600">{instruction}</span>
+                  <span className="text-gray-400">{instruction}</span>
                 </li>
               ))}
             </ul>
@@ -364,12 +364,12 @@ const TicketView = () => {
         </Card>
 
         {/* Event Description */}
-        <Card>
+        <Card className="bg-gray-900 border-orange-600/20">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">About This Event</h3>
-            <p className="text-gray-600 leading-relaxed">{ticket.eventDescription}</p>
+            <h3 className="text-lg font-semibold text-white mb-3">About This Event</h3>
+            <p className="text-gray-400 leading-relaxed">{ticket.eventDescription}</p>
             {ticket.supplementalDetails && (
-              <p className="text-gray-600 leading-relaxed mt-4 whitespace-pre-line">
+              <p className="text-gray-400 leading-relaxed mt-4 whitespace-pre-line">
                 {ticket.supplementalDetails}
               </p>
             )}
@@ -380,7 +380,7 @@ const TicketView = () => {
         <div className="flex space-x-4 mt-8">
           <Button 
             onClick={handleDownload}
-            className="gradient-orange text-white flex-1"
+            className="gradient-orange text-black flex-1"
           >
             <Download className="w-4 h-4 mr-2" />
             Download Ticket

@@ -5,6 +5,8 @@ public class BookTicketRequest {
     private Long eventId;
     private int quantity = 1;
     private String ticketType = "REGULAR";
+    private Double ticketPrice; // Price per ticket for this type
+    private String paymentMethod = "GCASH"; // Default payment method
 
     public Long getUserId() {
         return userId;
@@ -36,5 +38,21 @@ public class BookTicketRequest {
 
     public void setTicketType(String ticketType) {
         this.ticketType = ticketType;
+    }
+
+    public Double getTicketPrice() {
+        return ticketPrice;
+    }
+
+    public void setTicketPrice(Double ticketPrice) {
+        this.ticketPrice = ticketPrice;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 }

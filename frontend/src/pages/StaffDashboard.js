@@ -171,15 +171,15 @@ const StaffDashboard = () => {
     switch ((status || '').toLowerCase()) {
       case 'valid':
       case 'checked-in':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-900/30 text-green-400';
       case 'duplicate':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-900/30 text-red-400';
       case 'invalid':
-        return 'bg-gray-200 text-gray-700';
+        return 'bg-gray-800 text-gray-400';
       case 'expired':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-900/30 text-yellow-400';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-800 text-gray-400';
     }
   };
 
@@ -335,10 +335,10 @@ const StaffDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading event operations...</p>
+          <p className="mt-4 text-gray-400">Loading event operations...</p>
         </div>
       </div>
     );
@@ -346,11 +346,11 @@ const StaffDashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Staff dashboard unavailable</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <QrCode className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Staff dashboard unavailable</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
           <Button
             onClick={() => {
               const { location } = globalThis;
@@ -358,7 +358,7 @@ const StaffDashboard = () => {
                 location.reload();
               }
             }}
-            className="gradient-orange text-white"
+            className="gradient-orange text-black"
           >
             Refresh
           </Button>
@@ -377,15 +377,15 @@ const StaffDashboard = () => {
   const bulkResults = Array.isArray(bulkResult?.results) ? bulkResult.results : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Staff Dashboard</h1>
-            <p className="text-xl text-gray-600">Welcome, {user.name}. Manage event entry and scan tickets.</p>
+            <h1 className="text-4xl font-bold text-white mb-2">Staff Dashboard</h1>
+            <p className="text-xl text-gray-400">Welcome, {user.name}. Manage event entry and scan tickets.</p>
           </div>
           <Link to="/scan">
-            <Button className="gradient-orange text-white mt-4 sm:mt-0">
+            <Button className="gradient-orange text-black mt-4 sm:mt-0">
               <Scan className="w-5 h-5 mr-2" />
               Open QR Scanner
             </Button>
@@ -394,12 +394,12 @@ const StaffDashboard = () => {
 
         {events.length > 0 ? (
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={eventSelectId}>Select Event</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor={eventSelectId}>Select Event</label>
             <select
               id={eventSelectId}
               value={selectedEventId ?? ''}
               onChange={handleEventChange}
-              className="w-full max-w-sm p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full max-w-sm p-2 bg-gray-800 border border-gray-700 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               {events.map((event) => (
                 <option key={event.eventID} value={event.eventID}>
@@ -409,20 +409,20 @@ const StaffDashboard = () => {
             </select>
           </div>
         ) : (
-          <Card className="mb-8">
-            <CardContent className="py-8 text-center text-gray-600">
+          <Card className="mb-8 bg-gray-900 border-orange-600/20">
+            <CardContent className="py-8 text-center text-gray-400">
               No events available. Please ensure events are assigned to your staff role.
             </CardContent>
           </Card>
         )}
 
         {currentEvent && (
-          <Card className="mb-8 border-l-4 border-l-orange-500">
+          <Card className="mb-8 border-l-4 border-l-orange-500 bg-gray-900 border-orange-600/20">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">Current Event: {currentEvent.title}</h2>
-                  <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
+                  <h2 className="text-2xl font-semibold text-white mb-2">Current Event: {currentEvent.title}</h2>
+                  <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-400">
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4 text-orange-500" />
                       <span>{formatDate(currentEvent.eventStart)}</span>
@@ -437,7 +437,7 @@ const StaffDashboard = () => {
                     </div>
                   </div>
                 </div>
-                <Badge className="bg-green-100 text-green-700">
+                <Badge className="bg-green-900/30 text-green-400">
                   <Users className="w-3 h-3 mr-1" />
                   Active Event
                 </Badge>
@@ -447,69 +447,81 @@ const StaffDashboard = () => {
         )}
 
         {!currentEvent && events.length > 0 && (
-          <Card className="mb-8">
-            <CardContent className="py-8 text-center text-gray-600">
+          <Card className="mb-8 bg-gray-900 border-orange-600/20">
+            <CardContent className="py-8 text-center text-gray-400">
               Select an event to see live check-in metrics.
             </CardContent>
           </Card>
         )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Capacity</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalCapacity}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Total Capacity</p>
+                    <p className="text-3xl font-bold text-white">{totalCapacity}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <Users className="w-6 h-6 text-blue-400" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Checked In</p>
-                  <p className="text-3xl font-bold text-gray-900">{checkedIn}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Checked In</p>
+                    <p className="text-3xl font-bold text-white">{checkedIn}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-green-400" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Pending Check-ins</p>
-                  <p className="text-3xl font-bold text-gray-900">{pending}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Pending Check-ins</p>
+                    <p className="text-3xl font-bold text-white">{pending}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-yellow-400" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Issues Found</p>
-                  <p className="text-3xl font-bold text-gray-900">{issueCount}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Issues Found</p>
+                    <p className="text-3xl font-bold text-white">{issueCount}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-red-900/30 rounded-xl flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-red-400" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <Tabs defaultValue="scanner" className="space-y-6">
@@ -520,7 +532,7 @@ const StaffDashboard = () => {
           </TabsList>
 
           <TabsContent value="scanner" className="space-y-6">
-            <Card className="p-8 text-center">
+            <Card className="p-8 text-center bg-gray-900 border-orange-600/20">
               <CardContent>
                 <div className="max-w-md mx-auto space-y-6">
                   <div className="w-32 h-32 gradient-orange rounded-full flex items-center justify-center mx-auto">
@@ -528,8 +540,8 @@ const StaffDashboard = () => {
                   </div>
 
                   <div>
-                    <h3 className="text-2xl font-semibold text-gray-900 mb-2">QR Code Scanner Ready</h3>
-                    <p className="text-gray-600">Click the button below to open the camera and start scanning QR codes</p>
+                    <h3 className="text-2xl font-semibold text-white mb-2">QR Code Scanner Ready</h3>
+                    <p className="text-gray-400">Click the button below to open the camera and start scanning QR codes</p>
                   </div>
 
                   <Link to="/scan">
@@ -547,24 +559,33 @@ const StaffDashboard = () => {
             </Card>
 
             <div className="grid md:grid-cols-3 gap-6">
-              <Card className="text-center p-6">
-                <div className="text-3xl font-bold text-green-600 mb-2">{validScans}</div>
-                <div className="text-sm text-gray-600">Valid Scans Today</div>
-              </Card>
-              <Card className="text-center p-6">
-                <div className="text-3xl font-bold text-red-600 mb-2">{issueCount}</div>
-                <div className="text-sm text-gray-600">Issues Detected</div>
-              </Card>
-              <Card className="text-center p-6">
-                <div className="text-3xl font-bold text-blue-600 mb-2">{successRate}%</div>
-                <div className="text-sm text-gray-600">Success Rate</div>
-              </Card>
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+                <Card className="relative text-center p-6 bg-gray-900 border-orange-600/20 rounded-xl">
+                  <div className="text-3xl font-bold text-green-500 mb-2">{validScans}</div>
+                  <div className="text-sm text-gray-400">Valid Scans Today</div>
+                </Card>
+              </div>
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+                <Card className="relative text-center p-6 bg-gray-900 border-orange-600/20 rounded-xl">
+                  <div className="text-3xl font-bold text-red-500 mb-2">{issueCount}</div>
+                  <div className="text-sm text-gray-400">Issues Detected</div>
+                </Card>
+              </div>
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+                <Card className="relative text-center p-6 bg-gray-900 border-orange-600/20 rounded-xl">
+                  <div className="text-3xl font-bold text-blue-500 mb-2">{successRate}%</div>
+                  <div className="text-sm text-gray-400">Success Rate</div>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-gray-900">Recent Scans</h2>
+              <h2 className="text-2xl font-semibold text-white">Recent Scans</h2>
               <div className="relative max-w-xs">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input
@@ -578,16 +599,16 @@ const StaffDashboard = () => {
 
             <div className="space-y-3">
               {filteredTickets.map((ticket) => (
-                <Card key={ticket.ticketNumber || ticket.id || ticket.scanId} className="hover-lift">
+                <Card key={ticket.ticketNumber || ticket.id || ticket.scanId} className="hover-lift bg-gray-900 border-orange-600/20">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-                          <QrCode className="w-5 h-5 text-gray-600" />
+                        <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center">
+                          <QrCode className="w-5 h-5 text-gray-400" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{ticket.attendeeName || 'Guest'}</p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <p className="font-semibold text-white">{ticket.attendeeName || 'Guest'}</p>
+                          <div className="flex items-center space-x-4 text-sm text-gray-400">
                             <span className="font-mono">{ticket.ticketNumber || 'Ticket TBD'}</span>
                             <span>•</span>
                             <span>{ticket.attendeeEmail || 'no-email@provided.com'}</span>
@@ -612,23 +633,23 @@ const StaffDashboard = () => {
 
             {filteredTickets.length === 0 && (
               <div className="text-center py-16">
-                <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">{searchTerm ? 'No matching scans found' : 'No scans yet'}</h3>
-                <p className="text-gray-600">{searchTerm ? 'Try adjusting your search terms' : 'Start scanning QR codes to populate history.'}</p>
+                <QrCode className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">{searchTerm ? 'No matching scans found' : 'No scans yet'}</h3>
+                <p className="text-gray-400">{searchTerm ? 'Try adjusting your search terms' : 'Start scanning QR codes to populate history.'}</p>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-6">
-            <Card className="p-6">
+            <Card className="p-6 bg-gray-900 border-orange-600/20">
               <CardHeader className="px-0 pt-0">
-                <CardTitle>Manual Ticket Verification</CardTitle>
-                <p className="text-gray-600">Enter ticket number manually if QR scanning is not available.</p>
+                <CardTitle className="text-white">Manual Ticket Verification</CardTitle>
+                <p className="text-gray-400">Enter ticket number manually if QR scanning is not available.</p>
               </CardHeader>
               <CardContent className="px-0">
                 <div className="max-w-md space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={manualTicketId}>Ticket Number</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor={manualTicketId}>Ticket Number</label>
                     <Input
                       id={manualTicketId}
                       placeholder="e.g., TCK-001234"
@@ -639,7 +660,7 @@ const StaffDashboard = () => {
                     />
                   </div>
                   {!selectedEventId && (
-                    <p className="text-xs text-orange-600">Select an event to enable manual verification.</p>
+                    <p className="text-xs text-orange-500">Select an event to enable manual verification.</p>
                   )}
                   <Button
                     className="gradient-orange text-white"
@@ -656,42 +677,42 @@ const StaffDashboard = () => {
                     )}
                   </Button>
                   {manualResult && (
-                    <div className="mt-4 border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="mt-4 border border-gray-700 rounded-lg p-4 space-y-3 bg-gray-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <Badge className={`${getStatusColor(manualStatus)} flex items-center space-x-1`}>
                             {getStatusIcon(manualStatus)}
                             <span className="capitalize">{manualStatus || 'pending'}</span>
                           </Badge>
-                          <span className="font-mono text-sm text-gray-700">{manualResult.ticketNumber || 'Ticket'}</span>
+                          <span className="font-mono text-sm text-gray-300">{manualResult.ticketNumber || 'Ticket'}</span>
                         </div>
                         <span className="text-sm text-gray-500">{formatDateTime(manualResult.scannedAt)}</span>
                       </div>
-                      <p className="text-sm text-gray-700">{manualResult.message}</p>
+                      <p className="text-sm text-gray-300">{manualResult.message}</p>
 
                       {manualStatus && manualStatus !== 'invalid' && (
-                        <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-600">
+                        <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
                           <div>
                             <p className="uppercase text-xs text-gray-500">Attendee</p>
-                            <p className="font-semibold text-gray-900">{manualResult.attendeeName || 'Guest'}</p>
+                            <p className="font-semibold text-white">{manualResult.attendeeName || 'Guest'}</p>
                           </div>
                           <div>
                             <p className="uppercase text-xs text-gray-500">Email</p>
-                            <p className="font-semibold text-gray-900 break-words">{manualResult.attendeeEmail || '—'}</p>
+                            <p className="font-semibold text-white break-words">{manualResult.attendeeEmail || '—'}</p>
                           </div>
                           <div>
                             <p className="uppercase text-xs text-gray-500">Event</p>
-                            <p className="font-semibold text-gray-900">{manualResult.eventTitle || 'Event'}</p>
+                            <p className="font-semibold text-white">{manualResult.eventTitle || 'Event'}</p>
                           </div>
                           <div>
                             <p className="uppercase text-xs text-gray-500">Gate</p>
-                            <p className="font-semibold text-gray-900">{manualResult.gate || 'Main Gate'}</p>
+                            <p className="font-semibold text-white">{manualResult.gate || 'Main Gate'}</p>
                           </div>
                         </div>
                       )}
 
                       {manualStatus === 'duplicate' && manualResult.previousScanAt && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
+                        <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-3 text-sm text-yellow-400">
                           Previously scanned {formatDateTime(manualResult.previousScanAt)} • Re-entry attempts: {Math.max(manualResult.reEntryCount ?? 1, 1)}
                         </div>
                       )}
@@ -701,22 +722,22 @@ const StaffDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-6 bg-gray-900 border-orange-600/20">
               <CardHeader className="px-0 pt-0">
-                <CardTitle>Bulk Check-in</CardTitle>
-                <p className="text-gray-600">Check in multiple attendees at once using a list.</p>
+                <CardTitle className="text-white">Bulk Check-in</CardTitle>
+                <p className="text-gray-400">Check in multiple attendees at once using a list.</p>
               </CardHeader>
               <CardContent className="px-0">
                 <div className="space-y-4">
                   <textarea
-                    className="w-full h-32 p-3 border border-gray-300 rounded-lg font-mono text-sm"
+                    className="w-full h-32 p-3 bg-gray-800 border border-gray-700 rounded-lg font-mono text-sm text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
                     placeholder={BULK_PLACEHOLDER}
                     value={bulkInput}
                     onChange={(e) => setBulkInput(e.target.value)}
                     disabled={bulkLoading}
                   />
                   {!selectedEventId && (
-                    <p className="text-xs text-orange-600">Select an event to enable bulk check-in.</p>
+                    <p className="text-xs text-orange-500">Select an event to enable bulk check-in.</p>
                   )}
                   <Button
                     className="gradient-orange text-white"
@@ -735,17 +756,17 @@ const StaffDashboard = () => {
                   {bulkResult && (
                     <div className="mt-4 space-y-4">
                       <div className="grid md:grid-cols-3 gap-3">
-                        <div className="rounded-lg bg-green-50 p-3 text-center">
-                          <p className="text-xs uppercase text-green-700">Checked In</p>
-                          <p className="text-lg font-semibold text-green-800">{bulkResult.successful}</p>
+                        <div className="rounded-lg bg-green-900/30 border border-green-600/50 p-3 text-center">
+                          <p className="text-xs uppercase text-green-400">Checked In</p>
+                          <p className="text-lg font-semibold text-green-400">{bulkResult.successful}</p>
                         </div>
-                        <div className="rounded-lg bg-yellow-50 p-3 text-center">
-                          <p className="text-xs uppercase text-yellow-700">Duplicates</p>
-                          <p className="text-lg font-semibold text-yellow-800">{bulkResult.duplicates}</p>
+                        <div className="rounded-lg bg-yellow-900/30 border border-yellow-600/50 p-3 text-center">
+                          <p className="text-xs uppercase text-yellow-400">Duplicates</p>
+                          <p className="text-lg font-semibold text-yellow-400">{bulkResult.duplicates}</p>
                         </div>
-                        <div className="rounded-lg bg-red-50 p-3 text-center">
-                          <p className="text-xs uppercase text-red-700">Invalid</p>
-                          <p className="text-lg font-semibold text-red-800">{bulkResult.invalid}</p>
+                        <div className="rounded-lg bg-red-900/30 border border-red-600/50 p-3 text-center">
+                          <p className="text-xs uppercase text-red-400">Invalid</p>
+                          <p className="text-lg font-semibold text-red-400">{bulkResult.invalid}</p>
                         </div>
                       </div>
 
@@ -756,10 +777,10 @@ const StaffDashboard = () => {
                             return (
                               <div
                                 key={`${result.ticketId ?? result.ticketNumber ?? index}`}
-                                className="border border-gray-200 rounded-lg p-3 flex items-center justify-between"
+                                className="border border-gray-700 rounded-lg p-3 flex items-center justify-between bg-gray-800"
                               >
                                 <div>
-                                  <p className="font-mono text-sm text-gray-900">{result.ticketNumber || 'Ticket'}</p>
+                                  <p className="font-mono text-sm text-white">{result.ticketNumber || 'Ticket'}</p>
                                   <p className="text-xs text-gray-500">{result.attendeeName || 'Guest'}</p>
                                 </div>
                                 <div className="flex items-center space-x-3">

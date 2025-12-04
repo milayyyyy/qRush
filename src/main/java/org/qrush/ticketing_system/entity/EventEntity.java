@@ -57,11 +57,23 @@ public class EventEntity {
     @Column(name = "agenda", columnDefinition = "LONGTEXT")
     private String agenda;
 
+    @Column(name = "ticket_types", columnDefinition = "LONGTEXT")
+    private String ticketTypes; // JSON array of ticket types with name and price
+
     @Column(name = "view_count", nullable = false)
     private Long views = 0L;
 
     @Column(name = "tickets_sold", nullable = false)
     private Integer ticketsSold = 0;
+
+    @Column(name = "status", nullable = false)
+    private String status = "active"; // active, cancelled
+
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private java.time.LocalDateTime cancelledAt;
 
     // Getters and Setters
     public Long getEventID() {
@@ -192,6 +204,14 @@ public class EventEntity {
         this.agenda = agenda;
     }
 
+    public String getTicketTypes() {
+        return ticketTypes;
+    }
+
+    public void setTicketTypes(String ticketTypes) {
+        this.ticketTypes = ticketTypes;
+    }
+
     public Long getViews() {
         return views;
     }
@@ -206,5 +226,29 @@ public class EventEntity {
 
     public void setTicketsSold(Integer ticketsSold) {
         this.ticketsSold = ticketsSold;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public java.time.LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(java.time.LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
     }
 }

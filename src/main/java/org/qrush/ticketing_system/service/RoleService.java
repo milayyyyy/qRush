@@ -26,6 +26,11 @@ public class RoleService {
         return roleRepository.findById(Objects.requireNonNull(id, ROLE_ID_REQUIRED));
     }
 
+    public Optional<RoleEntity> getRoleByName(String roleName) {
+        return roleRepository.findByRoleNameIgnoreCase(
+                Objects.requireNonNull(roleName, "Role name must not be null"));
+    }
+
     public RoleEntity createRole(RoleEntity role) {
         return roleRepository.save(Objects.requireNonNull(role, "Role must not be null"));
     }
@@ -41,5 +46,19 @@ public class RoleService {
 
     public void deleteRole(Long id) {
         roleRepository.deleteById(Objects.requireNonNull(id, ROLE_ID_REQUIRED));
+    }
+
+    /**
+     * Initialize default roles if they don't exist
+     */
+    public void initializeDefaultRoles() {
+        String[] defaultRoles = { "attendee", "organizer", "staff" };
+        for (String roleName : defaultRoles) {
+            if (roleRepository.findByRoleNameIgnoreCase(roleName).isEmpty()) {
+                RoleEntity role = new RoleEntity();
+                role.setRoleName(roleName);
+                roleRepository.save(role);
+            }
+        }
     }
 }

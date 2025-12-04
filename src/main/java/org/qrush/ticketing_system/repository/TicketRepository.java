@@ -2,6 +2,7 @@ package org.qrush.ticketing_system.repository;
 
 import org.qrush.ticketing_system.entity.TicketEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -26,4 +27,8 @@ public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
 	Double sumRevenueByEvent(@Param("eventId") Long eventId);
 
 	Optional<TicketEntity> findByQrCode(String qrCode);
+
+	@Modifying
+	@Query("DELETE FROM TicketEntity t WHERE t.event.eventID = :eventId")
+	void deleteByEventId(@Param("eventId") Long eventId);
 }

@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "*")
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -43,7 +42,8 @@ public class PaymentController {
     @GetMapping("/reference/{reference}")
     public ResponseEntity<PaymentEntity> getPaymentByTransactionReference(@PathVariable String reference) {
         PaymentEntity payment = paymentService.getPaymentByTransactionReference(reference);
-        if (payment == null) return ResponseEntity.notFound().build();
+        if (payment == null)
+            return ResponseEntity.notFound().build();
         return ResponseEntity.ok(payment);
     }
 

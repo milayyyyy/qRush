@@ -16,7 +16,9 @@ import {
   ChevronRight,
   Download,
   Share,
-  History
+  History,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { toast } from 'sonner';
@@ -78,10 +80,10 @@ const AttendeeDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <p className="mt-4 text-gray-400">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -89,12 +91,12 @@ const AttendeeDashboard = () => {
 
   if (error || !dashboard) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Dashboard unavailable</h2>
-          <p className="text-gray-600 mb-4">{error || 'We could not load your ticket information right now.'}</p>
-          <Button onClick={handleRefresh} className="gradient-orange text-white">
+          <Ticket className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Dashboard unavailable</h2>
+          <p className="text-gray-400 mb-4">{error || 'We could not load your ticket information right now.'}</p>
+          <Button onClick={handleRefresh} className="gradient-orange text-black">
             Refresh
           </Button>
         </div>
@@ -112,63 +114,72 @@ const AttendeeDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2">
             Welcome back, {user.name}!
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-400">
             Manage your tickets and explore upcoming events
           </p>
         </div>
 
         {/* Quick Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Active Tickets</p>
-                  <p className="text-3xl font-bold text-gray-900">{dashboard.activeTickets}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Active Tickets</p>
+                    <p className="text-3xl font-bold text-white">{dashboard.activeTickets}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-600/20 rounded-xl flex items-center justify-center">
+                    <Ticket className="w-6 h-6 text-orange-500" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <Ticket className="w-6 h-6 text-orange-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Events Attended</p>
-                  <p className="text-3xl font-bold text-gray-900">{dashboard.eventsAttended}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Events Attended</p>
+                    <p className="text-3xl font-bold text-white">{dashboard.eventsAttended}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-600/20 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-orange-500" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="stats-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Spent</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    ₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <Card className="relative bg-gray-900 border-orange-600/20 rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 mb-1">Total Spent</p>
+                    <p className="text-3xl font-bold text-white">
+                      ₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-600/20 rounded-xl flex items-center justify-center">
+                    <Star className="w-6 h-6 text-orange-500" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Star className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -182,9 +193,9 @@ const AttendeeDashboard = () => {
           {/* My Tickets Tab */}
           <TabsContent value="tickets" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-gray-900">My Tickets</h2>
+              <h2 className="text-2xl font-semibold text-white">My Tickets</h2>
               <Link to="/events">
-                <Button className="gradient-orange text-white">
+                <Button className="gradient-orange text-black">
                   <Ticket className="w-4 h-4 mr-2" />
                   Browse More Events
                 </Button>
@@ -193,61 +204,105 @@ const AttendeeDashboard = () => {
 
             <div className="grid md:grid-cols-2 gap-6">
               {upcomingTickets.map((ticket) => (
-                <Card key={ticket.ticketId} className="event-card">
+                <Card 
+                  key={ticket.ticketId} 
+                  className={`bg-gray-900 ${
+                    ticket.status === 'refunded' || ticket.eventStatus === 'cancelled' 
+                      ? 'border-red-500/30' 
+                      : 'border-orange-600/20'
+                  }`}
+                >
                   <CardContent className="p-6">
                     <div className="space-y-4">
+                      {/* Refund/Cancelled Banner */}
+                      {(ticket.status === 'refunded' || ticket.eventStatus === 'cancelled') && (
+                        <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-red-400 mb-1">
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="font-medium">
+                              {ticket.status === 'refunded' ? 'Ticket Refunded' : 'Event Cancelled'}
+                            </span>
+                          </div>
+                          {ticket.eventCancellationReason && (
+                            <p className="text-sm text-gray-400">
+                              Reason: {ticket.eventCancellationReason}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2 text-sm text-green-400">
+                            <RefreshCw className="w-3 h-3" />
+                            <span>₱{ticket.price?.toLocaleString()} refunded to your payment method</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Event Info */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          <h3 className={`text-xl font-semibold mb-2 ${
+                            ticket.status === 'refunded' || ticket.eventStatus === 'cancelled'
+                              ? 'text-gray-500 line-through'
+                              : 'text-white'
+                          }`}>
                             {ticket.eventTitle}
                           </h3>
                           <div className="space-y-2">
-                            <div className="flex items-center text-sm text-gray-600">
+                            <div className="flex items-center text-sm text-gray-400">
                               <Calendar className="w-4 h-4 mr-2 text-orange-500" />
                               <span>{formatDate(ticket.eventStart)} </span>
                             </div>
-                            <div className="flex items-center text-sm text-gray-600">
+                            <div className="flex items-center text-sm text-gray-400">
                               <MapPin className="w-4 h-4 mr-2 text-orange-500" />
                               <span>{ticket.location}</span>
                             </div>
                           </div>
                         </div>
                         
-                        {isEventSoon(ticket.eventStart) && (
-                          <Badge className="bg-red-100 text-red-700">
+                        {ticket.status === 'refunded' || ticket.eventStatus === 'cancelled' ? (
+                          <Badge className="bg-red-900/50 text-red-400 border-red-600/30">
+                            Cancelled
+                          </Badge>
+                        ) : isEventSoon(ticket.eventStart) ? (
+                          <Badge className="bg-red-900/50 text-red-400 border-red-600/30">
                             <Clock className="w-3 h-3 mr-1" />
                             Soon
                           </Badge>
-                        )}
+                        ) : null}
                       </div>
 
-                      {/* QR Code */}
-                      <div className="qr-container bg-gray-50 rounded-xl p-4 text-center">
-                        <img 
-                          src={qrFromTicket(ticket)}
-                          alt="QR Code"
-                          className="w-24 h-24 mx-auto mb-3 rounded-lg"
-                        />
-                        <p className="text-sm font-mono text-gray-600">
-                          {ticket.ticketNumber}
-                        </p>
-                      </div>
+                      {/* QR Code - Only show if not refunded */}
+                      {ticket.status !== 'refunded' && ticket.eventStatus !== 'cancelled' && (
+                        <div className="qr-container bg-gray-800 rounded-xl p-4 text-center">
+                          <img 
+                            src={qrFromTicket(ticket)}
+                            alt="QR Code"
+                            className="w-24 h-24 mx-auto mb-3 rounded-lg"
+                          />
+                          <p className="text-sm font-mono text-gray-400">
+                            {ticket.ticketNumber}
+                          </p>
+                        </div>
+                      )}
 
                       {/* Actions */}
-                      <div className="flex space-x-2 pt-4 border-t border-gray-100">
+                      <div className="flex space-x-2 pt-4 border-t border-gray-700">
                         <Link to={`/ticket/${ticket.ticketId}`} className="flex-1">
                           <Button variant="outline" size="sm" className="w-full">
                             <QrCode className="w-4 h-4 mr-2" />
-                            View Full Ticket
+                            {ticket.status === 'refunded' || ticket.eventStatus === 'cancelled' 
+                              ? 'View Details' 
+                              : 'View Full Ticket'}
                           </Button>
                         </Link>
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Share className="w-4 h-4" />
-                        </Button>
+                        {ticket.status !== 'refunded' && ticket.eventStatus !== 'cancelled' && (
+                          <>
+                            <Button variant="outline" size="sm">
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Share className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -257,15 +312,15 @@ const AttendeeDashboard = () => {
 
             {upcomingTickets.length === 0 && (
               <div className="text-center py-16">
-                <Ticket className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">
+                <Ticket className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">
                   No tickets yet
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-400 mb-4">
                   Start by browsing and purchasing tickets for amazing events
                 </p>
                 <Link to="/events">
-                  <Button className="gradient-orange text-white">
+                  <Button className="gradient-orange text-black">
                     Browse Events
                   </Button>
                 </Link>
@@ -276,15 +331,15 @@ const AttendeeDashboard = () => {
           {/* Browse Events Tab */}
           <TabsContent value="events">
             <div className="text-center py-8">
-              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-900 mb-2">
+              <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-white mb-2">
                 Discover Amazing Events
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-400 mb-4">
                 Browse all available events and find your next adventure
               </p>
               <Link to="/events">
-                <Button className="gradient-orange text-white">
+                <Button className="gradient-orange text-black">
                   View All Events
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -294,22 +349,22 @@ const AttendeeDashboard = () => {
 
           {/* History Tab */}
           <TabsContent value="history" className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Event History</h2>
+            <h2 className="text-2xl font-semibold text-white">Event History</h2>
             
             <div className="space-y-4">
               {pastEvents.map((event) => (
-                <Card key={event.eventId} className="hover-lift">
+                <Card key={event.eventId} className="bg-gray-900 border-orange-600/20 hover:border-orange-500/40 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                          <History className="w-6 h-6 text-gray-600" />
+                        <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center">
+                          <History className="w-6 h-6 text-orange-500" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-white">
                             {event.eventTitle}
                           </h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <div className="flex items-center space-x-4 text-sm text-gray-400">
                             <span>{formatDate(event.eventDate)}</span>
                             <span>•</span>
                             <span>{event.location}</span>
@@ -319,19 +374,19 @@ const AttendeeDashboard = () => {
                       
                       <div className="flex items-center space-x-4">
                         {event.attended ? (
-                          <Badge className="bg-green-100 text-green-700">
+                          <Badge className="bg-green-900/50 text-green-400 border-green-600/30">
                             Attended
                           </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-700">
+                          <Badge className="bg-gray-800 text-gray-400 border-gray-600/30">
                             Missed
                           </Badge>
                         )}
                         
                         {event.rating && (
                           <div className="flex items-center space-x-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">{event.rating}</span>
+                            <Star className="w-4 h-4 fill-orange-400 text-orange-400" />
+                            <span className="text-sm font-medium text-white">{event.rating}</span>
                           </div>
                         )}
                       </div>
@@ -343,11 +398,11 @@ const AttendeeDashboard = () => {
 
             {pastEvents.length === 0 && (
               <div className="text-center py-16">
-                <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">
+                <History className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">
                   No event history
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-400">
                   Your attended events will appear here
                 </p>
               </div>

@@ -28,8 +28,12 @@ export const useEvents = () => {
     fetchEvents();
   }, []);
 
-  const filterEvents = useCallback((searchTerm, category) => {
+  const filterEvents = useCallback((searchTerm, category, includeCancelled = false) => {
     return events.filter(event => {
+      // Filter out cancelled events by default
+      if (!includeCancelled && event.status === 'cancelled') {
+        return false;
+      }
       const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            event.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = category === 'all' || event.category === category;

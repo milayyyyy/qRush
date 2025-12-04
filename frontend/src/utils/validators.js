@@ -67,3 +67,65 @@ export const validateRole = (role) => {
   
   return { isValid: true, message: '' };
 };
+
+export const validateContact = (contact) => {
+  if (!contact) {
+    return { isValid: false, message: 'Contact number is required' };
+  }
+  
+  // Remove any spaces or dashes
+  const cleanContact = contact.replace(/[\s-]/g, '');
+  
+  if (!/^09\d{9}$/.test(cleanContact)) {
+    return { isValid: false, message: 'Contact must be 11 digits starting with 09 (e.g., 09123456789)' };
+  }
+  
+  return { isValid: true, message: '' };
+};
+
+export const validateBirthdate = (birthdate) => {
+  if (!birthdate) {
+    return { isValid: false, message: 'Birthdate is required' };
+  }
+  
+  const date = new Date(birthdate);
+  const today = new Date();
+  
+  if (isNaN(date.getTime())) {
+    return { isValid: false, message: 'Please enter a valid date' };
+  }
+  
+  if (date > today) {
+    return { isValid: false, message: 'Birthdate cannot be in the future' };
+  }
+  
+  // Calculate age
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age--;
+  }
+  
+  if (age < 13) {
+    return { isValid: false, message: 'You must be at least 13 years old' };
+  }
+  
+  if (age > 120) {
+    return { isValid: false, message: 'Please enter a valid birthdate' };
+  }
+  
+  return { isValid: true, message: '' };
+};
+
+export const validateGender = (gender) => {
+  if (!gender) {
+    return { isValid: false, message: 'Please select your gender' };
+  }
+  
+  const validGenders = ['male', 'female', 'other', 'prefer-not-to-say'];
+  if (!validGenders.includes(gender.toLowerCase())) {
+    return { isValid: false, message: 'Please select a valid gender option' };
+  }
+  
+  return { isValid: true, message: '' };
+};

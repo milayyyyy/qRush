@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { apiService } from '../services/api';
-import { validateEmail, validatePassword, validateName, validateRole } from '../utils/validators'; 
+import { validateEmail, validatePassword, validateName, validateRole, validateContact, validateBirthdate, validateGender } from '../utils/validators'; 
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -15,8 +15,11 @@ import {
   Mail, 
   Lock, 
   User,
-  ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Phone,
+  Cake
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +31,8 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   const [currentTab, setCurrentTab] = useState('login'); // default tab
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   // Form validation state tracking
   const [touchedFields, setTouchedFields] = useState({});
@@ -37,6 +42,12 @@ const AuthPage = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [contact, setContact] = useState('');
+  const [contactError, setContactError] = useState('');
+  const [birthdate, setBirthdate] = useState('');
+  const [birthdateError, setBirthdateError] = useState('');
+  const [gender, setGender] = useState('');
+  const [genderError, setGenderError] = useState('');
 
   // Available user roles with display configurations
   const userRoles = [
@@ -87,6 +98,30 @@ const AuthPage = () => {
     }
   }, [name, touchedFields.name]);
 
+  // Real-time contact validation for 11-digit number starting with 09
+  useEffect(() => {
+    if (touchedFields.contact) {
+      const validation = validateContact(contact);
+      setContactError(validation.message);
+    }
+  }, [contact, touchedFields.contact]);
+
+  // Real-time birthdate validation
+  useEffect(() => {
+    if (touchedFields.birthdate) {
+      const validation = validateBirthdate(birthdate);
+      setBirthdateError(validation.message);
+    }
+  }, [birthdate, touchedFields.birthdate]);
+
+  // Real-time gender validation
+  useEffect(() => {
+    if (touchedFields.gender) {
+      const validation = validateGender(gender);
+      setGenderError(validation.message);
+    }
+  }, [gender, touchedFields.gender]);
+
   // Tracks field interaction for validation timing
   const handleFieldBlur = (fieldName) => {
     setTouchedFields(prev => ({ ...prev, [fieldName]: true }));
@@ -101,6 +136,7 @@ const AuthPage = () => {
     const email = formData.get('email');
     const password = formData.get('password');
     const name = formData.get('name');
+    const contactNum = formData.get('contact');
 
     try {
       let response;
@@ -124,19 +160,29 @@ const AuthPage = () => {
           name: true,
           email: true,
           password: true,
+          contact: true,
+          birthdate: true,
+          gender: true,
           role: true
         });
 
         const nameValidation = validateName(name);
         const emailValidation = validateEmail(email);
         const passwordValidation = validatePassword(password);
+        const contactValidation = validateContact(contactNum);
+        const birthdateValidation = validateBirthdate(birthdate);
+        const genderValidation = validateGender(gender);
         const roleValidation = validateRole(selectedRole);
 
         if (!nameValidation.isValid || !emailValidation.isValid || 
-            !passwordValidation.isValid || !roleValidation.isValid) {
+            !passwordValidation.isValid || !contactValidation.isValid || 
+            !birthdateValidation.isValid || !genderValidation.isValid || !roleValidation.isValid) {
           setNameError(nameValidation.message);
           setEmailError(emailValidation.message);
           setPasswordError(passwordValidation.message);
+          setContactError(contactValidation.message);
+          setBirthdateError(birthdateValidation.message);
+          setGenderError(genderValidation.message);
           setIsLoading(false);
           return;
         }
@@ -147,7 +193,9 @@ const AuthPage = () => {
           email: email,
           password: password,
           role: selectedRole.toUpperCase(),
-          contact: email
+          contact: contactNum,
+          birthdate: birthdate,
+          gender: gender
         });
       }
 
@@ -159,6 +207,9 @@ const AuthPage = () => {
         setName('');
         setEmail('');
         setPassword('');
+        setContact('');
+        setBirthdate('');
+        setGender('');
         setSelectedRole('');
         setTouchedFields({});
 
@@ -239,26 +290,26 @@ const AuthPage = () => {
     <div
       className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
         selectedRole === role.id
-          ? 'border-orange-500 bg-orange-50'
-          : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
+          ? 'border-orange-500 bg-orange-600/20'
+          : 'border-gray-700 hover:border-orange-500/50 hover:bg-orange-600/10'
       }`}
       onClick={() => setSelectedRole(role.id)}
     >
       <div className="flex items-center space-x-3">
-        <div className={`w-12 h-12 ${role.color} rounded-lg flex items-center justify-center`}>
-          <role.icon className="w-6 h-6" />
+        <div className={`w-12 h-12 bg-orange-600/20 rounded-lg flex items-center justify-center`}>
+          <role.icon className="w-6 h-6 text-orange-500" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">{role.title}</h3>
-          <p className="text-sm text-gray-600">{role.description}</p>
+          <h3 className="font-semibold text-white">{role.title}</h3>
+          <p className="text-sm text-gray-400">{role.description}</p>
         </div>
         <div className={`w-5 h-5 rounded-full border-2 ${
           selectedRole === role.id
             ? 'border-orange-500 bg-orange-500'
-            : 'border-gray-300'
+            : 'border-gray-600'
         }`}>
           {selectedRole === role.id && (
-            <div className="w-full h-full bg-white rounded-full scale-50"></div>
+            <div className="w-full h-full bg-black rounded-full scale-50"></div>
           )}
         </div>
       </div>
@@ -266,25 +317,17 @@ const AuthPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
-        <Link 
-          to="/"
-          className="inline-flex items-center space-x-2 text-gray-600 hover:text-orange-600 mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Home</span>
-        </Link>
-
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-xl border border-orange-600/20 bg-gray-900">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 gradient-orange rounded-2xl flex items-center justify-center mb-4">
-              <User className="w-8 h-8 text-white" />
+              <User className="w-8 h-8 text-black" />
             </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-2xl font-bold text-white">
               Welcome to QRush
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-gray-400">
               Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
@@ -305,7 +348,7 @@ const AuthPage = () => {
               <TabsContent value="login" className="space-y-4">
                 <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="login-email" className="text-sm font-medium text-gray-300">
                       Email Address
                     </Label>
                     <div className="relative">
@@ -322,7 +365,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="login-password" className="text-sm font-medium text-gray-300">
                       Password
                     </Label>
                     <div className="relative">
@@ -330,17 +373,24 @@ const AuthPage = () => {
                       <Input
                         id="login-password"
                         name="password"
-                        type="password"
+                        type={showLoginPassword ? "text" : "password"}
                         placeholder="Enter your password"
-                        className="pl-10 h-11"
+                        className="pl-10 pr-10 h-11"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-orange-500 transition-colors"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 
                   <Button 
                     type="submit" 
-                    className="w-full gradient-orange text-white h-11 font-semibold"
+                    className="w-full gradient-orange text-black h-11 font-semibold"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -354,7 +404,7 @@ const AuthPage = () => {
                   </Button>
                 </form>
 
-                <div className="text-center text-sm text-gray-600">
+                <div className="text-center text-sm text-gray-400">
                   <p>Use your registered email and password</p>
                 </div>
               </TabsContent>
@@ -363,7 +413,7 @@ const AuthPage = () => {
               <TabsContent value="signup" className="space-y-4">
                 <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="signup-name" className="text-sm font-medium text-gray-300">
                       Full Name
                     </Label>
                     <div className="relative">
@@ -389,7 +439,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="signup-email" className="text-sm font-medium text-gray-300">
                       Email Address
                     </Label>
                     <div className="relative">
@@ -415,7 +465,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="signup-password" className="text-sm font-medium text-gray-300">
                       Password
                     </Label>
                     <div className="relative">
@@ -423,14 +473,21 @@ const AuthPage = () => {
                       <Input
                         id="signup-password"
                         name="password"
-                        type="password"
+                        type={showSignupPassword ? "text" : "password"}
                         placeholder="Create a password"
-                        className={`pl-10 h-11 ${passwordError ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                        className={`pl-10 pr-10 h-11 ${passwordError ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onBlur={() => handleFieldBlur('password')}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-orange-500 transition-colors"
+                      >
+                        {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                     {passwordError ? (
                       <p className="text-red-500 text-xs mt-1 flex items-center">
@@ -442,8 +499,90 @@ const AuthPage = () => {
                     )}
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-contact" className="text-sm font-medium text-gray-300">
+                      Contact Number
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input
+                        id="signup-contact"
+                        name="contact"
+                        type="tel"
+                        placeholder="09123456789"
+                        className={`pl-10 h-11 ${contactError ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                        required
+                        value={contact}
+                        onChange={(e) => setContact(e.target.value)}
+                        onBlur={() => handleFieldBlur('contact')}
+                        maxLength={11}
+                      />
+                    </div>
+                    {contactError && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {contactError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-birthdate" className="text-sm font-medium text-gray-300">
+                        Birthdate
+                      </Label>
+                      <div className="relative">
+                        <Cake className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input
+                          id="signup-birthdate"
+                          name="birthdate"
+                          type="date"
+                          className={`pl-10 h-11 ${birthdateError ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                          required
+                          value={birthdate}
+                          onChange={(e) => setBirthdate(e.target.value)}
+                          onBlur={() => handleFieldBlur('birthdate')}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      {birthdateError && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {birthdateError}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-gender" className="text-sm font-medium text-gray-300">
+                        Gender
+                      </Label>
+                      <select
+                        id="signup-gender"
+                        name="gender"
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        onBlur={() => handleFieldBlur('gender')}
+                        className={`w-full h-11 px-3 rounded-md bg-gray-800 border text-white focus:outline-none focus:ring-2 focus:ring-orange-500 ${genderError ? 'border-red-500' : 'border-gray-700'}`}
+                        required
+                      >
+                        <option value="" className="text-gray-400">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="prefer-not-to-say">Prefer not to say</option>
+                      </select>
+                      {genderError && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {genderError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium text-gray-700">
+                    <Label className="text-sm font-medium text-gray-300">
                       Select Your Role
                     </Label>
                     <div className="space-y-2">
@@ -461,8 +600,8 @@ const AuthPage = () => {
 
                   <Button 
                     type="submit" 
-                    className="w-full gradient-orange text-white h-11 font-semibold"
-                    disabled={isLoading || !selectedRole || nameError || emailError || passwordError}
+                    className="w-full gradient-orange text-black h-11 font-semibold"
+                    disabled={isLoading || !selectedRole || nameError || emailError || passwordError || contactError || birthdateError || genderError}
                   >
                     {isLoading ? (
                       <div className="flex items-center space-x-2">
@@ -475,7 +614,7 @@ const AuthPage = () => {
                   </Button>
                 </form>
 
-                <div className="text-center text-sm text-gray-600">
+                <div className="text-center text-sm text-gray-400">
                   <p>Create your account to get started</p>
                 </div>
               </TabsContent>
@@ -484,7 +623,7 @@ const AuthPage = () => {
         </Card>
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-500">
             Real authentication with Spring Boot backend
           </p>
         </div>

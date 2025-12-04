@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import NoiseFlowBackground from '../components/NoiseFlowBackground';
 import { 
   QrCode, 
   Shield, 
@@ -60,24 +61,26 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-red-50">
+      <section id="home" className="relative overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black scroll-mt-16">
+        {/* Noise Flow Background */}
+        <NoiseFlowBackground />
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 lg:pt-16 lg:pb-20">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 lg:pt-16 lg:pb-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Content */}
             <div className="space-y-8">
               <div className="space-y-4">
-                <h1 className="text-6xl lg:text-8xl font-black text-gray-900 leading-tight">
+                <h1 className="text-6xl lg:text-8xl font-black text-white leading-tight">
                   QR Code
                   <span className="block text-5xl lg:text-6xl">
-                    <span className="bg-orange-500 text-white px-8 py-3 inline-block w-full text-center">
+                    <span className="bg-orange-600 text-black px-8 py-3 inline-block w-full text-center">
                       Revolution
                     </span>
                   </span>
                 </h1>
-                <p className="text-xl text-gray-600 max-w-lg leading-relaxed">
+                <p className="text-xl text-gray-400 max-w-lg leading-relaxed">
                   Transform your event experience with secure, instant QR code ticketing. 
                   Eliminate fraud, reduce wait times, and gain valuable insights.
                 </p>
@@ -100,36 +103,36 @@ const LandingPage = () => {
 
             {/* Hero Image */}
             <div className="relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-orange-600/30">
                 <img 
                   src="/qr-hero.jpg"
                   alt="QR Code on Smartphone"
                   className="w-full h-[500px] object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               </div>
               
               {/* Floating Cards */}
-              <div className="absolute -top-6 -right-6 bg-white p-4 rounded-2xl shadow-xl border border-gray-100">
+              <div className="absolute -top-6 -right-6 bg-gray-900 p-4 rounded-2xl shadow-xl border border-orange-600/30">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div className="w-10 h-10 bg-orange-600/20 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-orange-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Secure</p>
-                    <p className="text-sm text-gray-600">100% Fraud-Free</p>
+                    <p className="font-semibold text-white">Secure</p>
+                    <p className="text-sm text-gray-400">100% Fraud-Free</p>
                   </div>
                 </div>
               </div>
               
-              <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl border border-gray-100">
+              <div className="absolute -bottom-6 -left-6 bg-gray-900 p-4 rounded-2xl shadow-xl border border-orange-600/30">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-orange-600/20 rounded-full flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-orange-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Instant</p>
-                    <p className="text-sm text-gray-600">Lightning Fast</p>
+                    <p className="font-semibold text-white">Instant</p>
+                    <p className="text-sm text-gray-400">Lightning Fast</p>
                   </div>
                 </div>
               </div>
@@ -139,13 +142,13 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section id="why-qrush" className="py-20 bg-gray-900 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-4xl font-bold text-gray-900">
+            <h2 className="text-4xl font-bold text-white">
               Why Choose QRush?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Our comprehensive ticketing solution provides everything you need for successful events.
             </p>
           </div>
@@ -154,15 +157,22 @@ const LandingPage = () => {
             {features.map((feature, index) => (
               <div 
                 key={index}
-                className="event-card p-6 text-center hover-lift"
+                className="group relative bg-black/60 backdrop-blur-sm rounded-2xl p-6 text-center 
+                  hover:bg-black/40 hover:backdrop-blur-md hover:scale-105
+                  transition-all duration-300 ease-out cursor-pointer
+                  before:absolute before:inset-0 before:rounded-2xl before:p-[1px] before:bg-gradient-to-b before:from-orange-500/30 before:to-orange-600/10 before:-z-10
+                  before:blur-[2px] hover:before:blur-[4px] hover:before:from-orange-500/60 hover:before:to-orange-600/30
+                  after:absolute after:inset-0 after:rounded-2xl after:bg-black/80 after:-z-10
+                  shadow-lg shadow-orange-600/5 hover:shadow-xl hover:shadow-orange-600/20"
               >
-                <div className="w-16 h-16 gradient-orange rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 gradient-orange rounded-2xl flex items-center justify-center mx-auto mb-4 
+                  group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <feature.icon className="w-8 h-8 text-black" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-orange-400 transition-colors duration-300">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
                   {feature.description}
                 </p>
               </div>
@@ -172,13 +182,13 @@ const LandingPage = () => {
       </section>
 
       {/* User Types Section */}
-      <section className="py-20 bg-gray-50">
+      <section id="built-for-everyone" className="py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-4xl font-bold text-gray-900">
+            <h2 className="text-4xl font-bold text-white">
               Built for Everyone
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Whether you're organizing events, attending them, or managing entry, QRush has you covered.
             </p>
           </div>
@@ -187,19 +197,26 @@ const LandingPage = () => {
             {userTypes.map((type, index) => (
               <div 
                 key={index}
-                className="event-card p-8 text-center hover-lift"
+                className="group relative bg-gray-900/60 backdrop-blur-sm rounded-2xl p-8 text-center 
+                  hover:bg-gray-900/40 hover:backdrop-blur-md hover:scale-105
+                  transition-all duration-300 ease-out cursor-pointer
+                  before:absolute before:inset-0 before:rounded-2xl before:p-[1px] before:bg-gradient-to-b before:from-orange-500/30 before:to-orange-600/10 before:-z-10
+                  before:blur-[2px] hover:before:blur-[4px] hover:before:from-orange-500/60 hover:before:to-orange-600/30
+                  after:absolute after:inset-0 after:rounded-2xl after:bg-gray-900/80 after:-z-10
+                  shadow-lg shadow-orange-600/5 hover:shadow-xl hover:shadow-orange-600/20"
               >
-                <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <type.icon className="w-10 h-10 text-orange-600" />
+                <div className="w-20 h-20 bg-orange-600/20 rounded-3xl flex items-center justify-center mx-auto mb-6
+                  group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <type.icon className="w-10 h-10 text-orange-500" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+                <h3 className="text-2xl font-semibold text-white mb-4 group-hover:text-orange-400 transition-colors duration-300">
                   {type.title}
                 </h3>
-                <p className="text-gray-600 leading-relaxed mb-6">
+                <p className="text-gray-400 leading-relaxed mb-6 group-hover:text-gray-300 transition-colors duration-300">
                   {type.description}
                 </p>
                 <Link to={type.link}>
-                  <Button className="gradient-orange text-white hover:opacity-90">
+                  <Button className="gradient-orange text-black hover:opacity-90 group-hover:scale-105 transition-transform duration-300">
                     Get Started
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -211,14 +228,14 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer id="contact" className="bg-gray-900 text-white py-12 border-t border-orange-600/20 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             {/* Logo & Description */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 gradient-orange rounded-lg flex items-center justify-center">
-                  <QrCode className="w-6 h-6 text-white" />
+                  <QrCode className="w-6 h-6 text-black" />
                 </div>
                 <span className="text-2xl font-bold">
                   Q<span className="text-orange-500">Rush</span>
@@ -233,9 +250,9 @@ const LandingPage = () => {
             <div>
               <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
               <div className="space-y-2">
-                <Link to="/" className="block text-gray-400 hover:text-white transition-colors">Home</Link>
-                <Link to="/events" className="block text-gray-400 hover:text-white transition-colors">Events</Link>
-                <Link to="/auth" className="block text-gray-400 hover:text-white transition-colors">Sign Up</Link>
+                <Link to="/" className="block text-gray-400 hover:text-orange-500 transition-colors">Home</Link>
+                <Link to="/events" className="block text-gray-400 hover:text-orange-500 transition-colors">Events</Link>
+                <Link to="/auth" className="block text-gray-400 hover:text-orange-500 transition-colors">Sign Up</Link>
               </div>
             </div>
 

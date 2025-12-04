@@ -13,6 +13,8 @@ public class AttendanceLogService {
 
     private final AttendanceLogRepository attendanceLogRepository;
     private static final String LOG_ID_REQUIRED = "Attendance log ID must not be null";
+    private static final String USER_ID_REQUIRED = "User ID must not be null";
+    private static final String EVENT_ID_REQUIRED = "Event ID must not be null";
 
     public AttendanceLogService(AttendanceLogRepository attendanceLogRepository) {
         this.attendanceLogRepository = attendanceLogRepository;
@@ -24,6 +26,31 @@ public class AttendanceLogService {
 
     public Optional<AttendanceLogEntity> getLogById(Long id) {
         return attendanceLogRepository.findById(Objects.requireNonNull(id, LOG_ID_REQUIRED));
+    }
+
+    public List<AttendanceLogEntity> getLogsByUser(Long userId) {
+        Objects.requireNonNull(userId, USER_ID_REQUIRED);
+        return attendanceLogRepository.findByUser_UserIDOrderByStartTimeDesc(userId);
+    }
+
+    public List<AttendanceLogEntity> getLogsByEvent(Long eventId) {
+        Objects.requireNonNull(eventId, EVENT_ID_REQUIRED);
+        return attendanceLogRepository.findByEvent_EventID(eventId);
+    }
+
+    public List<AttendanceLogEntity> getRecentLogsByEvent(Long eventId) {
+        Objects.requireNonNull(eventId, EVENT_ID_REQUIRED);
+        return attendanceLogRepository.findTop25ByEvent_EventIDOrderByStartTimeDesc(eventId);
+    }
+
+    public long getCheckInCountByEvent(Long eventId) {
+        Objects.requireNonNull(eventId, EVENT_ID_REQUIRED);
+        return attendanceLogRepository.countByEvent_EventIDAndStatusIgnoreCase(eventId, "valid");
+    }
+
+    public long getTotalLogsByEvent(Long eventId) {
+        Objects.requireNonNull(eventId, EVENT_ID_REQUIRED);
+        return attendanceLogRepository.countByEvent_EventID(eventId);
     }
 
     public AttendanceLogEntity createLog(AttendanceLogEntity log) {

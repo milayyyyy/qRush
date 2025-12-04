@@ -5,6 +5,7 @@ import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import {
   Calendar,
   MapPin,
@@ -15,8 +16,11 @@ import {
   Star,
   CheckCircle,
   User,
-  Info,
-  AlertCircle
+  AlertCircle,
+  CreditCard,
+  Smartphone,
+  Wallet,
+  Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '../services/api';
@@ -39,17 +43,17 @@ const formatDate = (dateString) => {
 
 const getAvailabilityStatus = (registered, capacity) => {
   if (!capacity) {
-    return { text: 'Capacity TBA', color: 'bg-blue-100 text-blue-700' };
+    return { text: 'Capacity TBA', color: 'bg-blue-900/50 text-blue-400' };
   }
 
   const reg = Number(registered) || 0; 
   const cap = Number(capacity);
   const percentage = Math.min((reg / cap) * 100, 100);
 
-  if (percentage >= 100) return { text: 'Sold Out', color: 'bg-gray-100 text-gray-700' };
-  if (percentage >= 95) return { text: 'Almost Full', color: 'bg-red-100 text-red-700' };
-  if (percentage >= 75) return { text: 'Filling Fast', color: 'bg-yellow-100 text-yellow-700' };
-  return { text: 'Available', color: 'bg-green-100 text-green-700' };
+  if (percentage >= 100) return { text: 'Sold Out', color: 'bg-gray-800 text-gray-400' };
+  if (percentage >= 95) return { text: 'Almost Full', color: 'bg-red-900/50 text-red-400' };
+  if (percentage >= 75) return { text: 'Filling Fast', color: 'bg-yellow-900/50 text-yellow-400' };
+  return { text: 'Available', color: 'bg-green-900/50 text-green-400' };
 };
 
 const formatTimeRange = (start, end) => {
@@ -156,6 +160,44 @@ const parseEventAgenda = (rawAgenda) => {
   return [];
 };
 
+const parseEventTicketTypes = (rawTicketTypes) => {
+  if (!rawTicketTypes) {
+    return [];
+  }
+
+  const normalizeItem = (item) => ({
+    name: typeof item?.name === 'string' ? item.name : 'Regular',
+    price: typeof item?.price === 'number' ? item.price : 0,
+    description: typeof item?.description === 'string' ? item.description : '',
+    features: Array.isArray(item?.features) ? item.features.filter(f => typeof f === 'string' && f.trim()) : [],
+  });
+
+  if (Array.isArray(rawTicketTypes)) {
+    return rawTicketTypes
+      .map(normalizeItem)
+      .filter((item) => item.name);
+  }
+
+  if (typeof rawTicketTypes === 'string') {
+    const trimmed = rawTicketTypes.trim();
+    if (!trimmed) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(normalizeItem)
+          .filter((item) => item.name);
+      }
+    } catch (err) {
+      console.warn('Unable to parse ticket types data', err);
+    }
+  }
+
+  return [];
+};
+
 const mapEventResponse = (data, storedProfile, user) => {
   if (!data) {
     return null;
@@ -176,6 +218,7 @@ const mapEventResponse = (data, storedProfile, user) => {
     : '';
   const parsedFeatures = parseEventFeatures(data.features);
   const parsedAgenda = parseEventAgenda(data.agenda);
+  const parsedTicketTypes = parseEventTicketTypes(data.ticketTypes);
 
   const mappedEvent = {
     eventID: data.eventID,
@@ -198,6 +241,10 @@ const mapEventResponse = (data, storedProfile, user) => {
     reviews: data.reviews ?? null,
     features: parsedFeatures,
     agenda: parsedAgenda,
+    ticketTypes: parsedTicketTypes.length > 0 ? parsedTicketTypes : [{ name: 'Regular', price: Number(data.ticketPrice ?? 0), description: '' }],
+    status: data.status || 'active',
+    cancellationReason: data.cancellationReason || null,
+    cancelledAt: data.cancelledAt || null,
   };
 
   if (storedProfile) {
@@ -243,11 +290,20 @@ const shareEventLink = (eventTitle, toastInstance) => {
   toastInstance.error('Sharing is not supported in this browser.');
 };
 
+const PAYMENT_METHODS = [
+  { id: 'GCASH', name: 'GCash', icon: Smartphone, description: 'Pay with GCash e-wallet' },
+  { id: 'MAYA', name: 'Maya', icon: Wallet, description: 'Pay with Maya e-wallet' },
+  { id: 'CREDIT_CARD', name: 'Credit/Debit Card', icon: CreditCard, description: 'Visa, Mastercard, etc.' },
+  { id: 'BANK_TRANSFER', name: 'Bank Transfer', icon: Building2, description: 'Direct bank transfer' },
+];
+
 const processTicketPurchase = ({
   isAuthenticated,
   user,
   event,
   ticketQuantity,
+  ticketType,
+  paymentMethod,
   toastInstance,
   navigate,
 }) => {
@@ -267,18 +323,30 @@ const processTicketPurchase = ({
     return;
   }
 
+  if (!ticketType) {
+    toastInstance.error('Please select a ticket type.');
+    return;
+  }
+
+  if (!paymentMethod) {
+    toastInstance.error('Please select a payment method.');
+    return;
+  }
+
   toastInstance.promise(
     apiService.bookTickets({
       userId: user.id,
       eventId: event.eventID,
       quantity: ticketQuantity,
-      ticketType: 'REGULAR',
+      ticketType: ticketType.name,
+      ticketPrice: ticketType.price,
+      paymentMethod: paymentMethod,
     }),
     {
-      loading: 'Processing your tickets...',
+      loading: 'Processing your payment...',
       success: () => {
         navigate('/dashboard');
-        return `Successfully booked ${ticketQuantity} ticket${ticketQuantity > 1 ? 's' : ''}!`;
+        return `Successfully booked ${ticketQuantity} ${ticketType.name} ticket${ticketQuantity > 1 ? 's' : ''}!`;
       },
       error: 'Unable to complete the booking. Please try again.',
     }
@@ -288,10 +356,10 @@ const processTicketPurchase = ({
 const renderFallbackState = ({ isLoading, error, event, navigate }) => {
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading event details...</p>
+          <p className="mt-4 text-gray-400">Loading event details...</p>
         </div>
       </div>
     );
@@ -299,11 +367,11 @@ const renderFallbackState = ({ isLoading, error, event, navigate }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Event unavailable</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <AlertCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Event unavailable</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
           <Button onClick={() => navigate('/events')}>
             Browse Events
           </Button>
@@ -314,11 +382,11 @@ const renderFallbackState = ({ isLoading, error, event, navigate }) => {
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Event Not Found</h2>
-          <p className="text-gray-600 mb-4">The event you're looking for doesn't exist.</p>
+          <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Event Not Found</h2>
+          <p className="text-gray-400 mb-4">The event you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/events')}>
             Browse Events
           </Button>
@@ -338,6 +406,9 @@ const EventDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [selectedTicketType, setSelectedTicketType] = useState(null);
 
   const getStoredOrganizerProfile = useCallback(() => {
     try {
@@ -356,12 +427,15 @@ const EventDetails = () => {
     }
   }, [user?.id]);
 
+  // Effect for loading event data only - view tracking is done in EventCard on click
   useEffect(() => {
     const loadEvent = async () => {
       setIsLoading(true);
       setError(null);
+      
       try {
         const response = await apiService.getEvent(id);
+        
         const storedProfile = getStoredOrganizerProfile();
         const mapped = mapEventResponse(response, storedProfile, user);
         if (!mapped) {
@@ -380,15 +454,40 @@ const EventDetails = () => {
     loadEvent();
   }, [getStoredOrganizerProfile, id, user]);
 
+  // Opens the payment dialog when user clicks "Buy Tickets"
+  const handleBuyTicketsClick = () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to purchase tickets');
+      navigate('/auth');
+      return;
+    }
+    setSelectedPaymentMethod(null);
+    setSelectedTicketType(event?.ticketTypes?.[0] || null);
+    setShowPaymentDialog(true);
+  };
 
-  const handlePurchase = () => processTicketPurchase({
-    isAuthenticated,
-    user,
-    event,
-    ticketQuantity,
-    toastInstance: toast,
-    navigate,
-  });
+  // Confirms the purchase after selecting a payment method
+  const handleConfirmPurchase = () => {
+    if (!selectedTicketType) {
+      toast.error('Please select a ticket type');
+      return;
+    }
+    if (!selectedPaymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
+    setShowPaymentDialog(false);
+    processTicketPurchase({
+      isAuthenticated,
+      user,
+      event,
+      ticketQuantity,
+      ticketType: selectedTicketType,
+      paymentMethod: selectedPaymentMethod,
+      toastInstance: toast,
+      navigate,
+    });
+  };
 
   const handleShare = () => shareEventLink(event.title, toast);
 
@@ -438,10 +537,13 @@ const EventDetails = () => {
   const isSoldOut = Boolean(event.capacity) && event.registered >= event.capacity;
   const organizerEmailLabel = event.organizerEmail || 'Email unavailable';
   const organizerPhoneLabel = event.organizerPhone || 'Contact number unavailable';
-  const totalCost = (event.ticketPrice ?? 0) * ticketQuantity;
+  
+  // Check if user can book tickets (only attendees can book, not staff or organizers)
+  const userRole = user?.role?.toLowerCase();
+  const canBookTickets = !userRole || userRole === 'attendee';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Hero Section */}
       <div className="relative h-96 overflow-hidden">
         {heroImage ? (
@@ -451,18 +553,18 @@ const EventDetails = () => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-orange-500 via-rose-500 to-purple-600 flex items-center justify-center px-6 text-center">
+          <div className="w-full h-full bg-gradient-to-br from-orange-600 via-orange-700 to-gray-900 flex items-center justify-center px-6 text-center">
             <span className="text-white text-3xl font-semibold leading-tight">
               {event.title}
             </span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
         
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-orange-300 transition-colors"
+          className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-orange-400 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back</span>
@@ -473,7 +575,7 @@ const EventDetails = () => {
           onClick={handleShare}
           variant="secondary"
           size="sm"
-          className="absolute top-6 right-6 bg-white/20 backdrop-blur-sm text-white border-white/30"
+          className="absolute top-6 right-6 bg-gray-900/50 backdrop-blur-sm text-white border-orange-600/30"
         >
           <Share className="w-4 h-4 mr-2" />
           Share
@@ -500,28 +602,53 @@ const EventDetails = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Cancelled Event Banner */}
+        {event.status === 'cancelled' && (
+          <div className="mb-8 bg-red-900/30 border border-red-500/50 rounded-lg p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-red-500/20 rounded-full">
+                <AlertCircle className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-red-400 mb-2">Event Cancelled</h3>
+                <p className="text-gray-300 mb-2">
+                  This event has been cancelled by the organizer.
+                </p>
+                {event.cancellationReason && (
+                  <p className="text-gray-400">
+                    <span className="font-medium">Reason:</span> {event.cancellationReason}
+                  </p>
+                )}
+                <p className="text-gray-400 mt-2 text-sm">
+                  If you had purchased tickets, a refund has been automatically issued to your original payment method.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Event Details */}
-            <Card>
+            <Card className="bg-gray-900 border-orange-600/20">
               <CardContent className="p-6">
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <Calendar className="w-5 h-5 text-orange-500" />
                       <div>
-                        <p className="font-semibold text-gray-900">Date & Time</p>
-                        <p className="text-gray-600">{formatDate(event.startDate)}</p>
-                        <p className="text-gray-600">{timeRangeLabel}</p>
+                        <p className="font-semibold text-white">Date & Time</p>
+                        <p className="text-gray-400">{formatDate(event.startDate)}</p>
+                        <p className="text-gray-400">{timeRangeLabel}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-3">
                       <MapPin className="w-5 h-5 text-orange-500" />
                       <div>
-                        <p className="font-semibold text-gray-900">Location</p>
-                        <p className="text-gray-600">{event.location}</p>
+                        <p className="font-semibold text-white">Location</p>
+                        <p className="text-gray-400">{event.location}</p>
                         {event.address && (
                           <p className="text-sm text-gray-500 whitespace-pre-line">{event.address}</p>
                         )}
@@ -533,9 +660,9 @@ const EventDetails = () => {
                     <div className="flex items-center space-x-3">
                       <Users className="w-5 h-5 text-orange-500" />
                       <div>
-                        <p className="font-semibold text-gray-900">Registered</p>
-                        <p className="text-gray-600">{event.capacity ? `${event.registered} / ${event.capacity} people` : attendeeSummary}</p>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <p className="font-semibold text-white">Registered</p>
+                        <p className="text-gray-400">{event.capacity ? `${event.registered} / ${event.capacity} people` : attendeeSummary}</p>
+                        <div className="w-full bg-gray-800 rounded-full h-2 mt-2">
                           <div 
                             className="bg-orange-500 h-2 rounded-full"
                             style={{ width: `${Math.min(event.capacity ? (event.registered / event.capacity) * 100 : 0, 100)}%` }}
@@ -547,8 +674,8 @@ const EventDetails = () => {
                     <div className="flex items-center space-x-3">
                       <User className="w-5 h-5 text-orange-500" />
                       <div>
-                        <p className="font-semibold text-gray-900">Organizer</p>
-                        <p className="text-gray-600">{event.organizerName}</p>
+                        <p className="font-semibold text-white">Organizer</p>
+                        <p className="text-gray-400">{event.organizerName}</p>
                         <p className="text-sm text-gray-500">{organizerEmailLabel}</p>
                       </div>
                     </div>
@@ -556,8 +683,8 @@ const EventDetails = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">About This Event</h3>
-                  <div className="text-gray-600 space-y-4">
+                  <h3 className="text-xl font-semibold text-white mb-3">About This Event</h3>
+                  <div className="text-gray-400 space-y-4">
                     <p>{event.description}</p>
                     {event.fullDescription && (
                       <div className="whitespace-pre-line">{event.fullDescription}</div>
@@ -568,9 +695,9 @@ const EventDetails = () => {
             </Card>
 
             {/* Event Features */}
-            <Card>
+            <Card className="bg-gray-900 border-orange-600/20">
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">What's Included</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">What's Included</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {featureList.map((feature) => {
                     const featureKey = typeof feature === 'string' && feature.trim().length > 0
@@ -578,8 +705,8 @@ const EventDetails = () => {
                       : JSON.stringify(feature);
                     return (
                       <div key={featureKey} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-gray-600">{feature}</span>
+                        <CheckCircle className="w-4 h-4 text-orange-500" />
+                        <span className="text-gray-400">{feature}</span>
                       </div>
                     );
                   })}
@@ -588,23 +715,23 @@ const EventDetails = () => {
             </Card>
 
             {/* Event Agenda */}
-            <Card>
+            <Card className="bg-gray-900 border-orange-600/20">
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Event Agenda</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">Event Agenda</h3>
                 <div className="space-y-4">
                   {agendaItems.map((item) => {
                     const agendaKey = [item.time, item.title, item.speaker]
                       .filter(Boolean)
                       .join('::') || item.title || item.time;
                     return (
-                      <div key={agendaKey} className="flex space-x-4 pb-4 border-b border-gray-100 last:border-0">
+                      <div key={agendaKey} className="flex space-x-4 pb-4 border-b border-gray-700 last:border-0">
                         <div className="w-20 flex-shrink-0">
-                          <span className="text-sm font-medium text-orange-600">{item.time || 'TBD'}</span>
+                          <span className="text-sm font-medium text-orange-500">{item.time || 'TBD'}</span>
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{item.title}</h4>
+                          <h4 className="font-semibold text-white">{item.title}</h4>
                           {item.speaker && (
-                            <p className="text-sm text-gray-600">by {item.speaker}</p>
+                            <p className="text-sm text-gray-400">by {item.speaker}</p>
                           )}
                         </div>
                       </div>
@@ -615,83 +742,94 @@ const EventDetails = () => {
             </Card>
           </div>
 
-          {/* Sidebar - Ticket Purchase */}
+          {/* Sidebar - Ticket Purchase (only for attendees) */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
-              <Card className="shadow-xl">
+              <Card className="shadow-xl bg-gray-900 border-orange-600/20">
                 <CardContent className="p-6">
                   <div className="space-y-6">
-                    {/* Price */}
+                    {/* Ticket Types */}
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {formatPrice(event.ticketPrice)}
+                      {event.ticketTypes && event.ticketTypes.length > 1 ? (
+                        <>
+                          <div className="text-lg font-medium text-gray-400 mb-2">Starting from</div>
+                          <div className="text-3xl font-bold text-white mb-1">
+                            {formatPrice(Math.min(...event.ticketTypes.map(t => t.price)))}
+                          </div>
+                          <p className="text-sm text-gray-500">{event.ticketTypes.length} ticket types available</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-3xl font-bold text-white mb-1">
+                            {formatPrice(event.ticketTypes?.[0]?.price || event.ticketPrice)}
+                          </div>
+                          <p className="text-gray-400">per ticket</p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Ticket Types Preview */}
+                    {event.ticketTypes && event.ticketTypes.length > 1 && (
+                      <div className="space-y-2">
+                        {event.ticketTypes.map((ticketType) => (
+                          <div key={ticketType.name} className="flex justify-between items-center text-sm p-2 bg-gray-800/50 rounded">
+                            <span className="text-gray-300">{ticketType.name}</span>
+                            <span className="text-orange-500 font-medium">{formatCurrency(ticketType.price)}</span>
+                          </div>
+                        ))}
                       </div>
-                      <p className="text-gray-600">per ticket</p>
-                    </div>
+                    )}
 
-                    {/* Quantity Selector */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Number of Tickets
-                      </p>
-                      <div className="flex items-center space-x-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTicketQuantity(Math.max(1, ticketQuantity - 1))}
-                          disabled={ticketQuantity <= 1}
-                        >
-                          -
-                        </Button>
-                        <span className="text-lg font-semibold w-12 text-center">
-                          {ticketQuantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTicketQuantity(Math.min(10, ticketQuantity + 1))}
-                          disabled={ticketQuantity >= 10}
-                        >
-                          +
-                        </Button>
+                    {canBookTickets ? (
+                      <>
+                        {/* Purchase Button */}
+                        {event.status === 'cancelled' ? (
+                          <div className="text-center py-4">
+                            <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4">
+                              <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                              <p className="text-red-400 font-medium">Event Cancelled</p>
+                              <p className="text-sm text-gray-400 mt-1">
+                                Tickets are no longer available for this event.
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={handleBuyTicketsClick}
+                            className="w-full gradient-orange text-black text-lg py-3 h-auto"
+                            disabled={isSoldOut}
+                          >
+                            <Ticket className="w-5 h-5 mr-2" />
+                            {isSoldOut ? 'Sold Out' : 'Buy Tickets'}
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      /* Staff/Organizer View - No booking allowed */
+                      <div className="text-center py-4">
+                        <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                          <p className="text-gray-300 font-medium">
+                            {userRole === 'organizer' ? 'Organizer View' : 'Staff View'}
+                          </p>
+                          <p className="text-sm text-gray-400 mt-2">
+                            You are viewing this event as {userRole === 'organizer' ? 'an organizer' : 'staff'}. 
+                            Ticket booking is only available for attendees.
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center text-gray-400">
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Booking not available for your role</span>
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Total */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-gray-900">Total</span>
-                        <span className="text-xl font-bold text-gray-900">
-                          {formatCurrency(totalCost)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Purchase Button */}
-                    <Button
-                      onClick={handlePurchase}
-                      className="w-full gradient-orange text-white text-lg py-3 h-auto"
-                      disabled={isSoldOut}
-                    >
-                      <Ticket className="w-5 h-5 mr-2" />
-                      {isSoldOut ? 'Sold Out' : 'Buy Tickets'}
-                    </Button>
-
-                    {/* Info */}
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600 flex items-center justify-center">
-                        <Info className="w-4 h-4 mr-1" />
-                        Secure checkout with instant confirmation
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Organizer Info */}
-              <Card className="mt-6">
+              <Card className="mt-6 bg-gray-900 border-orange-600/20">
                 <CardContent className="p-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">Event Organizer</h4>
+                  <h4 className="font-semibold text-white mb-4">Event Organizer</h4>
                   <div className="flex items-center space-x-3 mb-4">
                     <img
                       src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(event.organizerName)}`}
@@ -699,11 +837,11 @@ const EventDetails = () => {
                       className="w-12 h-12 rounded-full"
                     />
                     <div>
-                      <p className="font-medium text-gray-900">{event.organizerName}</p>
-                      <p className="text-sm text-gray-600">Event Organizer</p>
+                      <p className="font-medium text-white">{event.organizerName}</p>
+                      <p className="text-sm text-gray-400">Event Organizer</p>
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <div className="space-y-2 text-sm text-gray-400">
                     <p>{organizerEmailLabel}</p>
                     <p>{organizerPhoneLabel}</p>
                   </div>
@@ -713,6 +851,167 @@ const EventDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent onClose={() => setShowPaymentDialog(false)}>
+          <DialogHeader>
+            <DialogTitle>Complete Your Purchase</DialogTitle>
+            <DialogDescription>
+              Select your ticket type and payment method
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-6 pt-2 space-y-6">
+            {/* Ticket Type Selection */}
+            {event?.ticketTypes && event.ticketTypes.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-300">Select Ticket Type</p>
+                {event.ticketTypes.map((ticketType) => {
+                  const isSelected = selectedTicketType?.name === ticketType.name;
+                  const ticketFeatures = ticketType.features || [];
+                  return (
+                    <button
+                      key={ticketType.name}
+                      onClick={() => setSelectedTicketType(ticketType)}
+                      className={`w-full text-left p-4 rounded-lg border transition-all ${
+                        isSelected 
+                          ? 'border-orange-500 bg-orange-500/10' 
+                          : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className={`font-medium ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                          {ticketType.name}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <span className={`font-semibold ${isSelected ? 'text-orange-500' : 'text-gray-300'}`}>
+                            {formatCurrency(ticketType.price)}
+                          </span>
+                          {isSelected && (
+                            <CheckCircle className="w-5 h-5 text-orange-500" />
+                          )}
+                        </div>
+                      </div>
+                      {ticketType.description && (
+                        <p className="text-sm text-gray-500 mb-2">{ticketType.description}</p>
+                      )}
+                      {ticketFeatures.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs font-medium text-gray-400">What's Included:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {ticketFeatures.map((feature, idx) => (
+                              <span 
+                                key={idx} 
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  isSelected 
+                                    ? 'bg-orange-500/20 text-orange-400' 
+                                    : 'bg-gray-700 text-gray-400'
+                                }`}
+                              >
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Quantity Selector */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-300">Quantity</p>
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTicketQuantity(Math.max(1, ticketQuantity - 1))}
+                  disabled={ticketQuantity <= 1}
+                >
+                  -
+                </Button>
+                <span className="text-lg font-semibold w-12 text-center text-white">
+                  {ticketQuantity}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTicketQuantity(Math.min(10, ticketQuantity + 1))}
+                  disabled={ticketQuantity >= 10}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-300">Payment Method</p>
+              {PAYMENT_METHODS.map((method) => {
+                const Icon = method.icon;
+                const isSelected = selectedPaymentMethod === method.id;
+                return (
+                  <button
+                    key={method.id}
+                    onClick={() => setSelectedPaymentMethod(method.id)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-lg border transition-all ${
+                      isSelected 
+                        ? 'border-orange-500 bg-orange-500/10' 
+                        : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-full ${isSelected ? 'bg-orange-500/20' : 'bg-gray-700'}`}>
+                      <Icon className={`w-5 h-5 ${isSelected ? 'text-orange-500' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className={`font-medium ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                        {method.name}
+                      </p>
+                      <p className="text-sm text-gray-500">{method.description}</p>
+                    </div>
+                    {isSelected && (
+                      <CheckCircle className="w-5 h-5 text-orange-500" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Order Summary */}
+            <div className="pt-4 border-t border-gray-700">
+              <div className="flex justify-between text-sm text-gray-400 mb-2">
+                <span>{selectedTicketType?.name || 'Ticket'} × {ticketQuantity}</span>
+                <span>{formatCurrency((selectedTicketType?.price || 0) * ticketQuantity)}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-white">
+                <span>Total</span>
+                <span className="text-orange-500">{formatCurrency((selectedTicketType?.price || 0) * ticketQuantity)}</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentDialog(false)}
+              className="mr-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmPurchase}
+              disabled={!selectedTicketType || !selectedPaymentMethod}
+              className="gradient-orange text-black"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Confirm Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

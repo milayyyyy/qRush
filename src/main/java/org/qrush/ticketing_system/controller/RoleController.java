@@ -2,10 +2,10 @@ package org.qrush.ticketing_system.controller;
 
 import org.qrush.ticketing_system.entity.RoleEntity;
 import org.qrush.ticketing_system.service.RoleService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -18,27 +18,47 @@ public class RoleController {
     }
 
     @GetMapping
-    public List<RoleEntity> getAllRoles() {
-        return roleService.getAllRoles();
+    public ResponseEntity<List<RoleEntity>> getAllRoles() {
+        return ResponseEntity.ok(roleService.getAllRoles());
     }
 
     @GetMapping("/{id}")
-    public Optional<RoleEntity> getRoleById(@PathVariable Long id) {
-        return roleService.getRoleById(id);
+    public ResponseEntity<RoleEntity> getRoleById(@PathVariable Long id) {
+        return roleService.getRoleById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/name/{roleName}")
+    public ResponseEntity<RoleEntity> getRoleByName(@PathVariable String roleName) {
+        return roleService.getRoleByName(roleName)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public RoleEntity createRole(@RequestBody RoleEntity role) {
-        return roleService.createRole(role);
+    public ResponseEntity<RoleEntity> createRole(@RequestBody RoleEntity role) {
+        return ResponseEntity.ok(roleService.createRole(role));
     }
 
     @PutMapping("/{id}")
-    public RoleEntity updateRole(@PathVariable Long id, @RequestBody RoleEntity updatedRole) {
-        return roleService.updateRole(id, updatedRole);
+    public ResponseEntity<RoleEntity> updateRole(@PathVariable Long id, @RequestBody RoleEntity updatedRole) {
+        RoleEntity updated = roleService.updateRole(id, updatedRole);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteRole(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
         roleService.deleteRole(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/initialize")
+    public ResponseEntity<String> initializeRoles() {
+        roleService.initializeDefaultRoles();
+        return ResponseEntity.ok("Default roles initialized");
     }
 }

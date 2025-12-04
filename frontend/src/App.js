@@ -4,6 +4,7 @@ import './App.css';
 
 // Components
 import Navbar from './components/Navbar';
+import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import AttendeeDashboard from './pages/AttendeeDashboard';
 import OrganizerDashboard from './pages/OrganizerDashboard';
@@ -13,6 +14,8 @@ import EventDetails from './pages/EventDetails';
 import TicketView from './pages/TicketView';
 import CreateEvent from './pages/CreateEvent';
 import QRScanner from './pages/QRScanner';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 import { Toaster } from './components/ui/sonner';
 
 // Mock authentication context
@@ -52,7 +55,7 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading QRush...</p>
@@ -66,11 +69,11 @@ function App() {
   return (
     <AuthContext.Provider value={authValue}>
       <Router>
-        <div className="App min-h-screen bg-gray-50">
+        <div className="App min-h-screen bg-black">
           <Navbar />
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Navigate to={defaultRoute} replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/events/:id" element={<EventDetails />} />
@@ -116,6 +119,14 @@ function App() {
                 <QRScanner /> : 
                 <Navigate to="/dashboard" />
               } 
+            />
+            <Route 
+              path="/profile" 
+              element={user ? <ProfilePage /> : <Navigate to="/auth" />} 
+            />
+            <Route 
+              path="/settings" 
+              element={user ? <SettingsPage /> : <Navigate to="/auth" />} 
             />
 
             {/* Catch all route */}

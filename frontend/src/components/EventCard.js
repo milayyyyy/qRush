@@ -1,12 +1,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Calendar, MapPin, Users, Ticket, Star } from 'lucide-react';
+import { apiService } from '../services/api';
+import { useAuth } from '../App';
+
+// Track which events have been viewed in this browser session
+const viewedEventsThisSession = new Set();
 
 const EventCard = ({ event }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -20,24 +28,24 @@ const EventCard = ({ event }) => {
 
   const getAvailabilityStatus = (registered, capacity) => {
     if (!capacity) {
-      return { text: 'Capacity TBA', color: 'bg-blue-100 text-blue-700' };
+      return { text: 'Capacity TBA', color: 'bg-blue-600/20 text-blue-400' };
     }
 
     const reg = Number(registered) || 0;
     const cap = Number(capacity);
     const percentage = Math.min((reg / cap) * 100, 100);
 
-    if (percentage >= 100) return { text: 'Sold Out', color: 'bg-gray-100 text-gray-700' };
-    if (percentage >= 95) return { text: 'Almost Full', color: 'bg-red-100 text-red-700' };
-    if (percentage >= 75) return { text: 'Filling Fast', color: 'bg-yellow-100 text-yellow-700' };
-    return { text: 'Available', color: 'bg-green-100 text-green-700' };
+    if (percentage >= 100) return { text: 'Sold Out', color: 'bg-gray-600/20 text-gray-400' };
+    if (percentage >= 95) return { text: 'Almost Full', color: 'bg-red-600/20 text-red-400' };
+    if (percentage >= 75) return { text: 'Filling Fast', color: 'bg-yellow-600/20 text-yellow-400' };
+    return { text: 'Available', color: 'bg-green-600/20 text-green-400' };
   };
 
   const availability = getAvailabilityStatus(event.ticketsSold, event.capacity);
   
 
   return (
-    <Card className="event-card overflow-hidden hover:shadow-lg transition-shadow duration-300">
+    <Card className="event-card overflow-hidden hover:shadow-lg transition-shadow duration-300 bg-gray-900 border-orange-600/20">
       <div className="relative">
         {event.image ? (
           <img
@@ -46,8 +54,8 @@ const EventCard = ({ event }) => {
             className="w-full h-48 object-cover"
           />
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-orange-200 via-orange-300 to-orange-400 flex items-center justify-center">
-            <span className="text-orange-900 font-semibold">Add an event image to highlight this listing</span>
+          <div className="w-full h-48 bg-gradient-to-br from-orange-600/40 via-orange-700/40 to-orange-800/40 flex items-center justify-center">
+            <span className="text-orange-300 font-semibold">Add an event image to highlight this listing</span>
           </div>
         )}
         <div className="absolute top-4 left-4">
@@ -57,7 +65,7 @@ const EventCard = ({ event }) => {
         </div>
         {event.rating && (
           <div className="absolute top-4 right-4">
-            <Badge className="bg-white/90 text-gray-700">
+            <Badge className="bg-black/80 text-gray-200">
               <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
               {event.rating}
             </Badge>
@@ -69,46 +77,65 @@ const EventCard = ({ event }) => {
         <div className="space-y-4">
           {/* Event Title */}
           <div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-white mb-2">
               {event.name}
             </h3>
-            <p className="text-gray-600 text-sm line-clamp-2">
+            <p className="text-gray-400 text-sm line-clamp-2">
               {event.description}
             </p>
           </div>
 
           {/* Event Details */}
           <div className="space-y-2">
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-gray-400">
               <Calendar className="w-4 h-4 mr-2 text-orange-500" />
               <span>{formatDate(event.startDate)}</span>
             </div>
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-gray-400">
               <MapPin className="w-4 h-4 mr-2 text-orange-500" />
               <span>{event.location}</span>
             </div>
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-gray-400">
               <Users className="w-4 h-4 mr-2 text-orange-500" />
               <span>{event.ticketsSold} / {event.capacity} registered</span>
             </div>
           </div>
 
           {/* Price & CTA */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-4 border-t border-orange-600/20">
             <div>
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-2xl font-bold text-white">
                 {event.ticketPrice === 0 ? 'Free' : `₱${event.ticketPrice}`}
               </span>
               {event.ticketPrice > 0 && (
                 <span className="text-sm text-gray-500 ml-1">per ticket</span>
               )}
             </div>
-            <Link to={`/events/${event.eventID}`}>
-              <Button className="gradient-orange text-white hover:opacity-90">
-                <Ticket className="w-4 h-4 mr-2" />
-                View Details
-              </Button>
-            </Link>
+            <Button 
+              className="gradient-orange text-black hover:opacity-90"
+              onClick={() => {
+                const eventKey = `${event.eventID}-${user?.id || 'anonymous'}`;
+                
+                // Only track if not already viewed in this session
+                if (!viewedEventsThisSession.has(eventKey)) {
+                  viewedEventsThisSession.add(eventKey);
+                  // Fire and forget - don't wait for response
+                  apiService.trackEventView(event.eventID, {
+                    userId: user?.id || null,
+                    userRole: user?.role || null
+                  }).catch(() => {
+                    // If tracking fails, allow retry next time
+                    viewedEventsThisSession.delete(eventKey);
+                  });
+                }
+                
+                // Navigate immediately
+                navigate(`/events/${event.eventID}`);
+              }}
+            >
+              <Ticket className="w-4 h-4 mr-2" />
+              View Details
+            </Button>
           </div>
 
           {/* Organizer */}

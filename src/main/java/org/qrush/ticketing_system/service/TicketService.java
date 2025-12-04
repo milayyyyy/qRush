@@ -8,10 +8,12 @@ import org.qrush.ticketing_system.dto.TicketScanRequest;
 import org.qrush.ticketing_system.dto.TicketScanResponse;
 import org.qrush.ticketing_system.entity.AttendanceLogEntity;
 import org.qrush.ticketing_system.entity.EventEntity;
+import org.qrush.ticketing_system.entity.PaymentEntity;
 import org.qrush.ticketing_system.entity.TicketEntity;
 import org.qrush.ticketing_system.entity.UserEntity;
 import org.qrush.ticketing_system.repository.AttendanceLogRepository;
 import org.qrush.ticketing_system.repository.EventRepository;
+import org.qrush.ticketing_system.repository.PaymentRepository;
 import org.qrush.ticketing_system.repository.TicketRepository;
 import org.qrush.ticketing_system.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.IntStream;
 
 @Service
 public class TicketService {
@@ -32,6 +33,8 @@ public class TicketService {
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
     private final AttendanceLogRepository attendanceLogRepository;
+    private final PaymentRepository paymentRepository;
+    private final NotificationService notificationService;
     private static final String TICKET_ID_REQUIRED = "Ticket ID must not be null";
     private static final String USER_ID_REQUIRED = "User ID must not be null";
     private static final String EVENT_ID_REQUIRED = "Event ID must not be null";
@@ -41,13 +44,17 @@ public class TicketService {
     private static final String STATUS_INVALID = "invalid";
 
     public TicketService(TicketRepository ticketRepository,
-                         UserRepository userRepository,
-                         EventRepository eventRepository,
-                         AttendanceLogRepository attendanceLogRepository) {
+            UserRepository userRepository,
+            EventRepository eventRepository,
+            AttendanceLogRepository attendanceLogRepository,
+            PaymentRepository paymentRepository,
+            NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.attendanceLogRepository = attendanceLogRepository;
+        this.paymentRepository = paymentRepository;
+        this.notificationService = notificationService;
     }
 
     public List<TicketEntity> getAllTickets() {
@@ -95,6 +102,34 @@ public class TicketService {
             TicketEntity ticket = createTicketEntity(user, event, ticketType);
             bookedTickets.add(ticketRepository.save(ticket));
         }
+
+        // Calculate total amount using ticket price from request (for specific ticket
+        // type) or event default
+        double ticketPrice = request.getTicketPrice() != null ? request.getTicketPrice()
+                : (event.getTicketPrice() != null ? event.getTicketPrice() : 0.0);
+        float totalAmount = (float) (ticketPrice * quantity);
+        if (totalAmount > 0) {
+            PaymentEntity payment = new PaymentEntity();
+            payment.setUserID(userId);
+            payment.setEventID(eventId);
+            payment.setAmount(totalAmount);
+            payment.setPaymentDate(LocalDateTime.now());
+            payment.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "GCASH");
+            payment.setPaymentStatus("COMPLETED");
+            payment.setTransactionReference(UUID.randomUUID().toString());
+            paymentRepository.save(payment);
+        }
+
+        // Send notification to user
+        String ticketWord = quantity > 1 ? "tickets" : "ticket";
+        notificationService.createEventNotification(
+                userId,
+                "success",
+                "Ticket Purchased",
+                String.format("Your %d %s %s for \"%s\" %s been confirmed!", quantity, ticketType, ticketWord,
+                        event.getName(),
+                        quantity > 1 ? "have" : "has"),
+                eventId);
 
         return bookedTickets;
     }
@@ -177,7 +212,8 @@ public class TicketService {
         int invalid = 0;
 
         for (String ticketNumber : ticketNumbers) {
-            ManualTicketVerificationRequest singleRequest = ManualTicketVerificationRequest.fromBulk(ticketNumber, request);
+            ManualTicketVerificationRequest singleRequest = ManualTicketVerificationRequest.fromBulk(ticketNumber,
+                    request);
             TicketScanResponse response = verifyTicketByNumberInternal(singleRequest, gate, LocalDateTime.now());
             results.add(response);
 
@@ -195,8 +231,8 @@ public class TicketService {
     }
 
     private TicketScanResponse verifyTicketByNumberInternal(ManualTicketVerificationRequest request,
-                                                            String gate,
-                                                            LocalDateTime scannedAt) {
+            String gate,
+            LocalDateTime scannedAt) {
         Long ticketId = extractTicketId(request.ticketNumber());
         if (ticketId == null) {
             return buildInvalidResponse("Ticket number is invalid.", gate, scannedAt);
@@ -228,7 +264,7 @@ public class TicketService {
 
     private TicketScanResponse buildInvalidResponse(String message, String gate, LocalDateTime scannedAt) {
         return new TicketScanResponse(
-            STATUS_INVALID,
+                STATUS_INVALID,
                 message,
                 null,
                 null,
@@ -242,8 +278,7 @@ public class TicketService {
                 0,
                 false,
                 scannedAt,
-                null
-        );
+                null);
     }
 
     private TicketScanResponse processTicketEntry(TicketEntity ticket, String gate, LocalDateTime scannedAt) {
@@ -283,6 +318,17 @@ public class TicketService {
             logEntry.setReEntry(reEntryCount);
             ticket.setStatus("CHECKED_IN");
             ticketRepository.save(ticket);
+
+            // Send notification to attendee about successful check-in
+            if (ticket.getUser() != null && ticket.getEvent() != null) {
+                notificationService.createEventNotification(
+                        ticket.getUser().getUserID(),
+                        "success",
+                        "Checked In",
+                        String.format("You've been checked in to \"%s\" at %s. Enjoy the event!",
+                                ticket.getEvent().getName(), gate),
+                        ticket.getEvent().getEventID());
+            }
         }
 
         attendanceLogRepository.save(logEntry);
@@ -305,8 +351,7 @@ public class TicketService {
                 reEntryCount,
                 alreadyCheckedIn,
                 scannedAt,
-                Optional.ofNullable(latestLog).map(AttendanceLogEntity::getStartTime).orElse(null)
-        );
+                Optional.ofNullable(latestLog).map(AttendanceLogEntity::getStartTime).orElse(null));
     }
 
     private Long extractTicketId(String ticketNumber) {
