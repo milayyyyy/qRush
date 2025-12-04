@@ -14,7 +14,7 @@ import java.util.ArrayList;
 @Configuration
 public class CorsConfig {
 
-    @Value("${FRONTEND_URL:http://localhost:3000}")
+    @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
     @Bean
