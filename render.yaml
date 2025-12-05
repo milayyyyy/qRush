@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: qrush-backend
+    runtime: java
+    javaVersion: "17"
+    buildCommand: "./mvnw clean package -DskipTests"
+    startCommand: "java -jar target/*.jar"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
