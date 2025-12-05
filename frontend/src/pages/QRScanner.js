@@ -345,7 +345,6 @@ const QRScanner = () => {
                     )}
                   </div>
                 </div>
-                </div>
 
                 <div className="text-center space-y-2">
                   <h2 className="text-2xl font-semibold text-white">Align QR Code</h2>
