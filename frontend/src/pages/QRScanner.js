@@ -28,6 +28,7 @@ const QRScanner = () => {
   );
   const [scannerMessage, setScannerMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const frameRef = useRef(null);
@@ -48,6 +49,7 @@ const QRScanner = () => {
   const stopScanning = useCallback(() => {
     setIsScanning(false);
     setIsProcessing(false);
+    setCameraReady(false);
     if (barcodeSupported) {
       setScannerMessage('');
     }
@@ -152,21 +154,42 @@ const QRScanner = () => {
       streamRef.current = stream;
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        const video = videoRef.current;
+        video.srcObject = stream;
+        
+        // Add event listeners for when video is ready
+        video.oncanplay = () => {
+          console.log('Video can play');
+          setCameraReady(true);
+        };
+        
+        video.onplaying = () => {
+          console.log('Video is playing');
+          setCameraReady(true);
+        };
         
         // Wait for video metadata to load
         await new Promise((resolve, reject) => {
-          const video = videoRef.current;
           video.onloadedmetadata = () => {
             console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
             resolve();
           };
-          video.onerror = reject;
+          video.onerror = (e) => {
+            console.error('Video error:', e);
+            reject(e);
+          };
           setTimeout(() => resolve(), 3000); // Timeout after 3s
         });
         
-        await videoRef.current.play();
-        console.log('Video playing, dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+        try {
+          await video.play();
+          console.log('Video playing, dimensions:', video.videoWidth, 'x', video.videoHeight);
+          setCameraReady(true);
+        } catch (playError) {
+          console.error('Play error:', playError);
+          // On some Android devices, play() might fail but video still works
+          setCameraReady(true);
+        }
       }
 
       setIsScanning(true);
@@ -304,8 +327,22 @@ const QRScanner = () => {
                       muted
                       playsInline
                       autoPlay
-                      style={{ transform: 'scaleX(1)' }}
+                      webkit-playsinline="true"
+                      x-webkit-airplay="deny"
+                      disablePictureInPicture
+                      style={{ 
+                        transform: 'scaleX(1)',
+                        WebkitTransform: 'scaleX(1)',
+                        objectFit: 'cover',
+                        backgroundColor: 'transparent'
+                      }}
                     />
+                    {!cameraReady && (
+                      <div className="absolute inset-0 bg-gray-800 flex flex-col items-center justify-center space-y-2 text-white">
+                        <Camera className="w-10 h-10 animate-pulse text-orange-500" />
+                        <span className="text-sm">Starting camera...</span>
+                      </div>
+                    )}
                     {isProcessing && (
                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center space-y-2 text-white">
                         <Camera className="w-10 h-10 animate-pulse text-orange-500" />

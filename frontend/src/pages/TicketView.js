@@ -148,8 +148,116 @@ const TicketView = () => {
     }).format(value ?? 0);
   };
 
-  const handleDownload = () => {
-    toast.success('Ticket downloaded successfully!');
+  const handleDownload = async () => {
+    try {
+      // Create a canvas to draw the ticket
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size
+      canvas.width = 600;
+      canvas.height = 800;
+      
+      // Background
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Orange header
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, '#f97316');
+      gradient.addColorStop(1, '#ea580c');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, 120);
+      
+      // Event title
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 28px Arial';
+      ctx.fillText(ticket.eventTitle, 30, 50);
+      
+      // Ticket number
+      ctx.font = '16px Arial';
+      ctx.fillText(`Ticket: ${ticket.ticketNumber}`, 30, 85);
+      
+      // Status badge
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(ticket.status, 30, 110);
+      
+      // Load and draw QR code
+      const qrImage = new Image();
+      qrImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        qrImage.onload = resolve;
+        qrImage.onerror = reject;
+        qrImage.src = ticket.qrCode;
+      });
+      
+      // Draw QR code centered
+      const qrSize = 200;
+      const qrX = (canvas.width - qrSize) / 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(qrX - 20, 150, qrSize + 40, qrSize + 40);
+      ctx.drawImage(qrImage, qrX, 170, qrSize, qrSize);
+      
+      // Ticket details
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px Arial';
+      let yPos = 420;
+      
+      ctx.fillText('Event Details', 30, yPos);
+      yPos += 35;
+      
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#9ca3af';
+      
+      // Date
+      ctx.fillText(`📅 ${formatDate(ticket.startDate)}`, 30, yPos);
+      yPos += 25;
+      
+      // Time
+      ctx.fillText(`🕐 ${formatTime(ticket.startDate)}`, 30, yPos);
+      yPos += 25;
+      
+      // Location
+      ctx.fillText(`📍 ${ticket.location}`, 30, yPos);
+      yPos += 35;
+      
+      // Attendee info
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText('Attendee', 30, yPos);
+      yPos += 30;
+      
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#9ca3af';
+      ctx.fillText(`👤 ${ticket.attendeeName}`, 30, yPos);
+      yPos += 25;
+      ctx.fillText(`✉️ ${ticket.attendeeEmail}`, 30, yPos);
+      yPos += 35;
+      
+      // Price
+      ctx.fillStyle = '#f97316';
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText(`${formatCurrency(ticket.price)}`, 30, yPos);
+      
+      // Footer
+      ctx.fillStyle = '#4b5563';
+      ctx.font = '12px Arial';
+      ctx.fillText('Powered by QRush Ticketing', 30, canvas.height - 30);
+      ctx.fillText('Show this QR code at the entrance', 30, canvas.height - 50);
+      
+      // Download
+      const link = document.createElement('a');
+      link.download = `${ticket.ticketNumber}_${ticket.eventTitle.replace(/[^a-z0-9]/gi, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast.success('Ticket downloaded successfully!');
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error('Failed to download ticket. Please try again.');
+    }
   };
 
   const handleShare = () => {

@@ -113,6 +113,111 @@ const AttendeeDashboard = () => {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
   };
 
+  const handleDownloadTicket = async (ticket) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = 600;
+      canvas.height = 400;
+      
+      // Background
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Orange header
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, '#f97316');
+      gradient.addColorStop(1, '#ea580c');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, 80);
+      
+      // Event title
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 22px Arial';
+      ctx.fillText(ticket.eventName || 'Event', 20, 35);
+      
+      // Ticket number
+      ctx.font = '14px Arial';
+      ctx.fillText(`Ticket: ${ticket.ticketNumber || `TCK-${String(ticket.ticketId).padStart(6, '0')}`}`, 20, 60);
+      
+      // Load QR code
+      const qrImage = new Image();
+      qrImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        qrImage.onload = resolve;
+        qrImage.onerror = reject;
+        qrImage.src = qrFromTicket(ticket);
+      });
+      
+      // Draw QR code
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(20, 100, 160, 160);
+      ctx.drawImage(qrImage, 30, 110, 140, 140);
+      
+      // Details on the right
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('Event Details', 210, 120);
+      
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#9ca3af';
+      ctx.fillText(`📅 ${formatDate(ticket.eventDate)}`, 210, 150);
+      ctx.fillText(`📍 ${ticket.location || 'TBA'}`, 210, 175);
+      ctx.fillText(`🎫 ${ticket.ticketType || 'General'}`, 210, 200);
+      
+      ctx.fillStyle = '#f97316';
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText(`PHP ${(ticket.price || 0).toLocaleString()}`, 210, 235);
+      
+      // Footer
+      ctx.fillStyle = '#4b5563';
+      ctx.font = '11px Arial';
+      ctx.fillText('Show this QR code at the entrance • Powered by QRush', 20, canvas.height - 20);
+      
+      // Download
+      const link = document.createElement('a');
+      const ticketNum = ticket.ticketNumber || `TCK-${String(ticket.ticketId).padStart(6, '0')}`;
+      link.download = `${ticketNum}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast.success('Ticket downloaded!');
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error('Failed to download ticket');
+    }
+  };
+
+  const handleShareTicket = async (ticket) => {
+    const ticketUrl = `${globalThis?.location?.origin || ''}/ticket/${ticket.ticketId}`;
+    const nav = globalThis?.navigator;
+    
+    if (typeof nav?.share === 'function') {
+      try {
+        await nav.share({
+          title: ticket.eventName || 'My Ticket',
+          text: `Check out my ticket for ${ticket.eventName || 'this event'}!`,
+          url: ticketUrl,
+        });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    }
+    
+    if (typeof nav?.clipboard?.writeText === 'function') {
+      await nav.clipboard.writeText(ticketUrl);
+      toast.success('Ticket link copied to clipboard!');
+      return;
+    }
+    
+    toast.error('Sharing is not supported on this device');
+  };
+
   return (
     <div className="min-h-screen bg-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -295,10 +400,10 @@ const AttendeeDashboard = () => {
                         </Link>
                         {ticket.status !== 'refunded' && ticket.eventStatus !== 'cancelled' && (
                           <>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" onClick={() => handleDownloadTicket(ticket)}>
                               <Download className="w-4 h-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" onClick={() => handleShareTicket(ticket)}>
                               <Share className="w-4 h-4" />
                             </Button>
                           </>
