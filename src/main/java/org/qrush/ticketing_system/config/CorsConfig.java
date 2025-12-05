@@ -21,7 +21,7 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        
+
         // Allow localhost for development and production URL
         List<String> allowedOrigins = new ArrayList<>();
         allowedOrigins.add("http://localhost:3000");
@@ -29,7 +29,7 @@ public class CorsConfig {
             allowedOrigins.add(frontendUrl);
         }
         config.setAllowedOrigins(allowedOrigins);
-        
+
         config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization",
                 "X-Requested-With", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
