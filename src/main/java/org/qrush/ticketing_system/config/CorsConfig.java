@@ -22,10 +22,11 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
 
-        // Allow localhost for development and production URL
+        // Allow localhost for development and production URLs
         List<String> allowedOrigins = new ArrayList<>();
         allowedOrigins.add("http://localhost:3000");
-        if (frontendUrl != null && !frontendUrl.equals("http://localhost:3000")) {
+        allowedOrigins.add("https://q-rush.vercel.app");
+        if (frontendUrl != null && !frontendUrl.equals("http://localhost:3000") && !frontendUrl.equals("https://q-rush.vercel.app")) {
             allowedOrigins.add(frontendUrl);
         }
         config.setAllowedOrigins(allowedOrigins);
