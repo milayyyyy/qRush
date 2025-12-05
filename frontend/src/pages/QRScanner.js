@@ -327,12 +327,9 @@ const QRScanner = () => {
                       muted
                       playsInline
                       autoPlay
-                      webkit-playsinline="true"
-                      x-webkit-airplay="deny"
                       disablePictureInPicture
                       style={{ 
                         transform: 'scaleX(1)',
-                        WebkitTransform: 'scaleX(1)',
                         objectFit: 'cover',
                         backgroundColor: 'transparent'
                       }}
