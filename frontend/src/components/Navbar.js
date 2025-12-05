@@ -7,7 +7,6 @@ import {
   Menu, 
   X, 
   User, 
-  QrCode, 
   Settings,
   LogOut,
   Bell,
