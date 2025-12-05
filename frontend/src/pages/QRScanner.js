@@ -125,23 +125,52 @@ const QRScanner = () => {
 
     try {
       setCameraError(null);
-      setScannerMessage('');
+      setScannerMessage('Initializing camera...');
       setScannedData(null);
       setIsProcessing(false);
       lastScannedCodeRef.current = null;
 
-      const stream = await mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-      });
+      // Try back camera first, fall back to any camera
+      let stream;
+      try {
+        stream = await mediaDevices.getUserMedia({
+          video: { 
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch (backCameraError) {
+        console.log('Back camera failed, trying any camera:', backCameraError);
+        stream = await mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      }
 
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Wait for video metadata to load
+        await new Promise((resolve, reject) => {
+          const video = videoRef.current;
+          video.onloadedmetadata = () => {
+            console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+            resolve();
+          };
+          video.onerror = reject;
+          setTimeout(() => resolve(), 3000); // Timeout after 3s
+        });
+        
         await videoRef.current.play();
+        console.log('Video playing, dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
       }
 
       setIsScanning(true);
+      setScannerMessage('');
       if (!barcodeSupported) {
         setScannerMessage('Camera ready. This browser does not support automatic QR detection.');
       }
@@ -268,13 +297,14 @@ const QRScanner = () => {
             {isScanning ? (
               <div className="space-y-6">
                 <div className="max-w-md mx-auto w-full">
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-black shadow-inner border border-orange-600/30">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-800 shadow-inner border border-orange-600/30">
                     <video
                       ref={videoRef}
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                       muted
                       playsInline
                       autoPlay
+                      style={{ transform: 'scaleX(1)' }}
                     />
                     {isProcessing && (
                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center space-y-2 text-white">
