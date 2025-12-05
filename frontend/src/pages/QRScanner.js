@@ -5,6 +5,7 @@ import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
 import { 
   QrCode,
   Camera,
@@ -12,7 +13,8 @@ import {
   XCircle,
   ArrowLeft,
   AlertTriangle,
-  User
+  User,
+  Keyboard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '../services/api';
@@ -29,6 +31,8 @@ const QRScanner = () => {
   const [scannerMessage, setScannerMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const frameRef = useRef(null);
@@ -116,6 +120,18 @@ const QRScanner = () => {
     }
   }, [isProcessing, stopScanning, user?.id]);
 
+  const handleManualSubmit = async (e) => {
+    e.preventDefault();
+    const code = manualCode.trim();
+    if (!code) {
+      toast.error('Please enter a ticket code');
+      return;
+    }
+    setShowManualEntry(false);
+    await handleDetectedCode(code);
+    setManualCode('');
+  };
+
   const startScanning = useCallback(async () => {
     const nav = globalThis?.navigator;
     const mediaDevices = nav?.mediaDevices;
@@ -127,82 +143,57 @@ const QRScanner = () => {
 
     try {
       setCameraError(null);
-      setScannerMessage('Initializing camera...');
+      setScannerMessage('');
       setScannedData(null);
       setIsProcessing(false);
+      setCameraReady(false);
       lastScannedCodeRef.current = null;
+      setIsScanning(true);
 
-      // Try back camera first, fall back to any camera
-      let stream;
-      try {
-        stream = await mediaDevices.getUserMedia({
-          video: { 
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        });
-      } catch (backCameraError) {
-        console.log('Back camera failed, trying any camera:', backCameraError);
-        stream = await mediaDevices.getUserMedia({
-          video: true,
-          audio: false
-        });
-      }
+      // Simple camera request - let browser choose best option
+      const stream = await mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
 
       streamRef.current = stream;
       
       if (videoRef.current) {
         const video = videoRef.current;
+        
+        // Set srcObject and let video element handle it
         video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('autoplay', 'true');
+        video.muted = true;
         
-        // Add event listeners for when video is ready
-        video.oncanplay = () => {
-          console.log('Video can play');
+        // Use loadeddata event - more reliable than loadedmetadata
+        video.onloadeddata = () => {
+          console.log('Video data loaded');
           setCameraReady(true);
         };
         
-        video.onplaying = () => {
-          console.log('Video is playing');
-          setCameraReady(true);
-        };
-        
-        // Wait for video metadata to load
-        await new Promise((resolve, reject) => {
-          video.onloadedmetadata = () => {
-            console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-            resolve();
-          };
-          video.onerror = (e) => {
-            console.error('Video error:', e);
-            reject(e);
-          };
-          setTimeout(() => resolve(), 3000); // Timeout after 3s
+        // Try to play
+        video.play().catch(err => {
+          console.log('Autoplay failed, user interaction needed:', err);
         });
-        
-        try {
-          await video.play();
-          console.log('Video playing, dimensions:', video.videoWidth, 'x', video.videoHeight);
-          setCameraReady(true);
-        } catch (playError) {
-          console.error('Play error:', playError);
-          // On some Android devices, play() might fail but video still works
-          setCameraReady(true);
-        }
       }
 
-      setIsScanning(true);
-      setScannerMessage('');
       if (!barcodeSupported) {
-        setScannerMessage('Camera ready. This browser does not support automatic QR detection.');
+        setScannerMessage('Camera ready. Use manual entry for ticket verification.');
       }
     } catch (error) {
       console.error('Unable to access camera', error);
-      setCameraError('Unable to access the camera. Please check permissions and try again.');
-      stopScanning();
+      setIsScanning(false);
+      if (error.name === 'NotAllowedError') {
+        setCameraError('Camera permission denied. Please allow camera access and try again.');
+      } else if (error.name === 'NotFoundError') {
+        setCameraError('No camera found on this device.');
+      } else {
+        setCameraError('Unable to access the camera. Please check permissions and try again.');
+      }
     }
-  }, [barcodeSupported, stopScanning]);
+  }, [barcodeSupported]);
 
   useEffect(() => {
     if (!isScanning || !barcodeSupported) {
@@ -320,33 +311,40 @@ const QRScanner = () => {
             {isScanning ? (
               <div className="space-y-6">
                 <div className="max-w-md mx-auto w-full">
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-800 shadow-inner border border-orange-600/30">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-black shadow-inner border-4 border-orange-500">
                     <video
                       ref={videoRef}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      muted
-                      playsInline
                       autoPlay
-                      disablePictureInPicture
+                      playsInline
+                      muted
                       style={{ 
-                        transform: 'scaleX(1)',
-                        objectFit: 'cover',
-                        backgroundColor: 'transparent'
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
                       }}
                     />
+                    {/* Scanning overlay */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute inset-8 border-2 border-orange-500 rounded-lg"></div>
+                    </div>
                     {!cameraReady && (
-                      <div className="absolute inset-0 bg-gray-800 flex flex-col items-center justify-center space-y-2 text-white">
-                        <Camera className="w-10 h-10 animate-pulse text-orange-500" />
-                        <span className="text-sm">Starting camera...</span>
+                      <div className="absolute inset-0 bg-black flex flex-col items-center justify-center space-y-3 text-white z-10">
+                        <Camera className="w-12 h-12 animate-pulse text-orange-500" />
+                        <span className="text-base font-medium">Starting camera...</span>
+                        <span className="text-xs text-gray-400">Please allow camera access</span>
                       </div>
                     )}
                     {isProcessing && (
-                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center space-y-2 text-white">
+                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center space-y-2 text-white z-10">
                         <Camera className="w-10 h-10 animate-pulse text-orange-500" />
                         <span className="text-sm">Processing scan...</span>
                       </div>
                     )}
                   </div>
+                </div>
                 </div>
 
                 <div className="text-center space-y-2">
@@ -390,14 +388,25 @@ const QRScanner = () => {
                   </div>
                 )}
 
-                <Button
-                  onClick={startScanning}
-                  className="gradient-orange text-white text-lg px-8 py-4 h-auto"
-                  disabled={isProcessing}
-                >
-                  <Camera className="w-6 h-6 mr-3" />
-                  Start Camera
-                </Button>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    onClick={startScanning}
+                    className="gradient-orange text-white text-lg px-8 py-4 h-auto"
+                    disabled={isProcessing}
+                  >
+                    <Camera className="w-6 h-6 mr-3" />
+                    Start Camera
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowManualEntry(true)}
+                    disabled={isProcessing}
+                  >
+                    <Keyboard className="w-5 h-5 mr-2" />
+                    Enter Code Manually
+                  </Button>
+                </div>
 
                 <div className="text-sm text-gray-500 space-y-1">
                   <p>Logged in as: <strong className="text-gray-300">{user.name}</strong></p>
@@ -410,6 +419,49 @@ const QRScanner = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Manual Entry Modal */}
+        {showManualEntry && (
+          <Card className="mb-8 bg-gray-900 border-orange-600/20">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold text-white mb-4">Enter Ticket Code</h3>
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Enter ticket code (e.g., TCK-000001 or QR code value)"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value)}
+                    className="bg-gray-800 border-gray-700 text-white"
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Enter the ticket number or the full QR code value
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    type="submit"
+                    className="gradient-orange text-white flex-1"
+                    disabled={isProcessing || !manualCode.trim()}
+                  >
+                    {isProcessing ? 'Verifying...' : 'Verify Ticket'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowManualEntry(false);
+                      setManualCode('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Scan Result */}
         {scannedData && (
