@@ -694,26 +694,6 @@ const EventDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Event Features */}
-            <Card className="bg-gray-900 border-orange-600/20">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">What's Included</h3>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {featureList.map((feature) => {
-                    const featureKey = typeof feature === 'string' && feature.trim().length > 0
-                      ? feature
-                      : JSON.stringify(feature);
-                    return (
-                      <div key={featureKey} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-orange-500" />
-                        <span className="text-gray-400">{feature}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Event Agenda */}
             <Card className="bg-gray-900 border-orange-600/20">
               <CardContent className="p-6">

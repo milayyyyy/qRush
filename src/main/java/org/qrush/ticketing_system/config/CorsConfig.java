@@ -26,7 +26,8 @@ public class CorsConfig {
         List<String> allowedOrigins = new ArrayList<>();
         allowedOrigins.add("http://localhost:3000");
         allowedOrigins.add("https://q-rush.vercel.app");
-        if (frontendUrl != null && !frontendUrl.equals("http://localhost:3000") && !frontendUrl.equals("https://q-rush.vercel.app")) {
+        if (frontendUrl != null && !frontendUrl.equals("http://localhost:3000")
+                && !frontendUrl.equals("https://q-rush.vercel.app")) {
             allowedOrigins.add(frontendUrl);
         }
         config.setAllowedOrigins(allowedOrigins);

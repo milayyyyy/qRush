@@ -281,9 +281,11 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to={defaultRoute} className="flex items-center space-x-3">
-            <div className="w-10 h-10 gradient-orange rounded-lg flex items-center justify-center">
-              <QrCode className="w-6 h-6 text-black" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="QRush" 
+              className="w-10 h-10 rounded-lg"
+            />
             <span className="text-2xl font-bold text-white">
               Q<span className="text-orange-500">Rush</span>
             </span>
