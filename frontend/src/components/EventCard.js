@@ -42,6 +42,16 @@ const EventCard = ({ event }) => {
   };
 
   const availability = getAvailabilityStatus(event.ticketsSold, event.capacity);
+
+  // Status badge color and text
+  const statusBadge = (() => {
+    switch (event.status) {
+      case 'ENDED': return { text: 'Ended', color: 'bg-gray-600/20 text-gray-400' };
+      case 'CANCELLED': return { text: 'Cancelled', color: 'bg-red-600/20 text-red-400' };
+      case 'ARCHIVED': return { text: 'Archived', color: 'bg-yellow-600/20 text-yellow-400' };
+      default: return null;
+    }
+  })();
   
 
   return (
@@ -58,10 +68,13 @@ const EventCard = ({ event }) => {
             <span className="text-orange-300 font-semibold">Add an event image to highlight this listing</span>
           </div>
         )}
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
           <Badge className={availability.color}>
             {availability.text}
           </Badge>
+          {statusBadge && (
+            <Badge className={statusBadge.color}>{statusBadge.text}</Badge>
+          )}
         </div>
         {event.rating && (
           <div className="absolute top-4 right-4">
@@ -115,23 +128,19 @@ const EventCard = ({ event }) => {
               className="gradient-orange text-black hover:opacity-90"
               onClick={() => {
                 const eventKey = `${event.eventID}-${user?.id || 'anonymous'}`;
-                
-                // Only track if not already viewed in this session
                 if (!viewedEventsThisSession.has(eventKey)) {
                   viewedEventsThisSession.add(eventKey);
-                  // Fire and forget - don't wait for response
                   apiService.trackEventView(event.eventID, {
                     userId: user?.id || null,
                     userRole: user?.role || null
                   }).catch(() => {
-                    // If tracking fails, allow retry next time
                     viewedEventsThisSession.delete(eventKey);
                   });
                 }
-                
-                // Navigate immediately
                 navigate(`/events/${event.eventID}`);
               }}
+              disabled={event.status !== 'AVAILABLE'}
+              title={event.status === 'AVAILABLE' ? undefined : 'Purchasing disabled for this event'}
             >
               <Ticket className="w-4 h-4 mr-2" />
               View Details
@@ -163,5 +172,7 @@ EventCard.propTypes = {
     organizer: PropTypes.string,
     rating: PropTypes.number,
     image: PropTypes.string,
+    status: PropTypes.string,
+    ticketsSold: PropTypes.number,
   }).isRequired,
 };

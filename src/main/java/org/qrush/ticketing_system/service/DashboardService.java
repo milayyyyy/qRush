@@ -118,7 +118,7 @@ public class DashboardService {
                                                         event.getName(),
                                                         event.getStartDate(),
                                                         event.getEndDate(),
-                                                        event.getStatus() != null ? event.getStatus() : "published",
+                                                        event.getStatus() != null ? event.getStatus().name() : "PUBLISHED",
                                                         ticketsSold,
                                                         capacity,
                                                         revenue,
@@ -223,7 +223,7 @@ public class DashboardService {
                                 ticket.getQrCode(),
                                 ticket.getPrice(),
                                 ticket.getStatus(),
-                                event != null ? event.getStatus() : null,
+                                event != null ? event.getStatus().name() : null,
                                 event != null ? event.getCancellationReason() : null);
         }
 

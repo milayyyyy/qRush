@@ -10,6 +10,20 @@ import java.util.Optional;
 
 @Service
 public class AttendanceLogService {
+    @org.springframework.beans.factory.annotation.Value("${event.scan.window.before.hours:2}")
+    private int scanWindowBeforeHours;
+
+    @org.springframework.beans.factory.annotation.Value("${event.scan.window.after.hours:2}")
+    private int scanWindowAfterHours;
+
+    /**
+     * Returns true if the current time is within the scan window for the event.
+     */
+    public boolean isWithinScanWindow(java.time.LocalDateTime now, org.qrush.ticketing_system.entity.EventEntity event) {
+        java.time.LocalDateTime windowStart = event.getStartDate().minusHours(scanWindowBeforeHours);
+        java.time.LocalDateTime windowEnd = event.getEndDate().plusHours(scanWindowAfterHours);
+        return (now.isEqual(windowStart) || now.isAfter(windowStart)) && (now.isEqual(windowEnd) || now.isBefore(windowEnd));
+    }
 
     private final AttendanceLogRepository attendanceLogRepository;
     private static final String LOG_ID_REQUIRED = "Attendance log ID must not be null";

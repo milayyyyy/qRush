@@ -56,6 +56,14 @@ public class AttendanceLogController {
 
     @PostMapping
     public ResponseEntity<AttendanceLogEntity> createLog(@RequestBody AttendanceLogEntity log) {
+        // Scan window check
+        if (log.getEvent() == null || log.getStartTime() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        java.time.LocalDateTime now = log.getStartTime();
+        if (!attendanceLogService.isWithinScanWindow(now, log.getEvent())) {
+            return ResponseEntity.status(403).body(null); // Forbidden: outside scan window
+        }
         return ResponseEntity.ok(attendanceLogService.createLog(log));
     }
 

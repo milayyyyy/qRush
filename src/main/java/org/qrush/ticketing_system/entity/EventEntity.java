@@ -66,8 +66,7 @@ public class EventEntity {
     @Column(name = "tickets_sold", nullable = false)
     private Integer ticketsSold = 0;
 
-    @Column(name = "status", nullable = false)
-    private String status = "active"; // active, cancelled
+    // ...existing code...
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     private String cancellationReason;
@@ -80,9 +79,9 @@ public class EventEntity {
         return eventID;
     }
 
-    public void setEventID(Long eventID) {
-        this.eventID = eventID;
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private EventStatus status = EventStatus.AVAILABLE;
 
     public String getName() {
         return name;
@@ -228,13 +227,7 @@ public class EventEntity {
         this.ticketsSold = ticketsSold;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    // ...existing code...
 
     public String getCancellationReason() {
         return cancellationReason;
@@ -250,5 +243,13 @@ public class EventEntity {
 
     public void setCancelledAt(java.time.LocalDateTime cancelledAt) {
         this.cancelledAt = cancelledAt;
+    }
+
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
     }
 }

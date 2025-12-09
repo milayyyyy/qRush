@@ -32,11 +32,15 @@ const CATEGORIES = [
 const EventsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const { loading, error, filterEvents } = useEvents();
+  const { loading, error, filterEvents, getPastEvents } = useEvents();
 
   const filteredEvents = useMemo(() => 
     filterEvents(searchTerm, selectedCategory),
     [filterEvents, searchTerm, selectedCategory]
+  );
+  const pastEvents = useMemo(() => 
+    getPastEvents(searchTerm, selectedCategory),
+    [getPastEvents, searchTerm, selectedCategory]
   );
 
   if (loading) {
@@ -130,10 +134,22 @@ const EventsPage = () => {
           </div>
         )}
 
+        {/* Past Events Section */}
+        {pastEvents.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-white mb-4">Past Events</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pastEvents.map((event) => (
+                <EventCard key={event.eventID} event={event} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Event Count */}
         {filteredEvents.length > 0 && (
           <div className="text-center mt-8 text-gray-400">
-            Showing {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
+            Showing {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'}
           </div>
         )}
       </div>

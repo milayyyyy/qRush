@@ -31,15 +31,24 @@ export const useEvents = () => {
   const filterEvents = useCallback((searchTerm, category, includeCancelled = false) => {
     return events.filter(event => {
       // Filter out cancelled events by default
-      if (!includeCancelled && event.status === 'cancelled') {
+      if (!includeCancelled && event.status === 'CANCELLED') {
         return false;
       }
       const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            event.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = category === 'all' || event.category === category;
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesCategory && event.status === 'AVAILABLE';
     });
   }, [events]);
 
-  return { events, loading, error, filterEvents };
+  const getPastEvents = useCallback((searchTerm, category) => {
+    return events.filter(event => {
+      const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           event.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = category === 'all' || event.category === category;
+      return matchesSearch && matchesCategory && event.status === 'ENDED';
+    });
+  }, [events]);
+
+  return { events, loading, error, filterEvents, getPastEvents };
 };
