@@ -204,7 +204,7 @@ public class EventService {
         EventEntity event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found with ID: " + eventId));
 
-        if ("cancelled".equalsIgnoreCase(event.getStatus())) {
+        if (event.getStatus() == org.qrush.ticketing_system.entity.EventStatus.CANCELLED) {
             throw new IllegalStateException("Event is already cancelled");
         }
 
@@ -217,31 +217,28 @@ public class EventService {
         // Mark all tickets as refunded and notify users
         for (TicketEntity ticket : tickets) {
             if (!"refunded".equalsIgnoreCase(ticket.getStatus()) &&
-                    !"cancelled".equalsIgnoreCase(ticket.getStatus())) {
-
-                totalRefundAmount += ticket.getPrice();
-                ticketsRefunded++;
-
-                // Update ticket status
-                ticket.setStatus("refunded");
-                ticketRepository.save(ticket);
-
-                // Send notification to ticket holder
-                notificationService.createEventNotification(
-                        ticket.getUser().getUserID(),
-                        "warning",
-                        "Event Cancelled - Refund Issued",
-                        String.format("The event \"%s\" has been cancelled. Reason: %s. " +
-                                "A refund of ₱%.2f has been issued to your original payment method.",
-                                event.getName(),
-                                reason != null ? reason : "Unforeseen circumstances",
-                                ticket.getPrice()),
-                        eventId);
+                !"cancelled".equalsIgnoreCase(ticket.getStatus())) {
+            totalRefundAmount += ticket.getPrice();
+            ticketsRefunded++;
+            // Update ticket status
+            ticket.setStatus("refunded"); // Assuming ticket.status is still String
+            ticketRepository.save(ticket);
+            // Send notification to ticket holder
+            notificationService.createEventNotification(
+                ticket.getUser().getUserID(),
+                "warning",
+                "Event Cancelled - Refund Issued",
+                String.format("The event \"%s\" has been cancelled. Reason: %s. " +
+                    "A refund of ₱%.2f has been issued to your original payment method.",
+                    event.getName(),
+                    reason != null ? reason : "Unforeseen circumstances",
+                    ticket.getPrice()),
+                eventId);
             }
         }
 
         // Update event status
-        event.setStatus("cancelled");
+        event.setStatus(org.qrush.ticketing_system.entity.EventStatus.CANCELLED);
         event.setCancellationReason(reason != null ? reason : "Unforeseen circumstances");
         event.setCancelledAt(LocalDateTime.now());
         eventRepository.save(event);
